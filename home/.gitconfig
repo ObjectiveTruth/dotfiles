@@ -8,8 +8,9 @@
 [color]
         ui = true
 [alias]
-        s = status -s
         commitv = commit -v
         lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative
 [push]
         default = simple
+[core]
+	excludesfile = ~/.gitignore
