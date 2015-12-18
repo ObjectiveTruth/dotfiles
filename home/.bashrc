@@ -9,6 +9,7 @@ do
 done
 
 # Sets the prompt
+# Not used for now, see how the gitprompt.sh works out
 set_prompt () {
     Last_Command=$? # Must come first!
     Blue='\[\e[01;34m\]'
@@ -39,5 +40,13 @@ set_prompt () {
     # the text color to the default.
     PS1+="$Blue\\w \n\\\$$Reset "
 }
-PROMPT_COMMAND='set_prompt'
+# Customization for bash-git-prompt as per https://github.com/magicmonty/bash-git-prompt
+GIT_PROMPT_FETCH_REMOTE_STATUS=0
+GIT_PROMPT_THEME=Solarized
+
+# Activate bash-git-prompt
+source $HOME/.homesick/repos/dotfiles/bash-git-prompt/gitprompt.sh
+
+# If the gitprompt.sh fails, fall back to a still nice command prompt
+if [ $? -ne 0 ] ; then PROMPT_COMMAND='set_prompt' ; fi
 
