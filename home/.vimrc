@@ -13,9 +13,6 @@ imap jj <Esc>
 " Sets the line number
 set number
 
-" sets the colorscheme
-colors molokai
-
 " removes highlighting search terms after you hit enter after /
 :set nohlsearch
 
