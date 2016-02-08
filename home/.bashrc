@@ -2,6 +2,9 @@
 # Loads Homeshick so you can call from console
 source "$HOME/.homesick/repos/homeshick/homeshick.sh"
 
+#After any ! command that executes history. Command is placed in CMD instead of excuted
+shopt -s histverify
+
 # Loads Completions
 for f in $(find -L $HOME/.homesick/repos/dotfiles/bash_completions/ -type f -name '*.bash')
 do

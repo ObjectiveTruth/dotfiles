@@ -21,3 +21,6 @@ set autochdir
 
 " Tell vim to be aware of the filetype being edited, used in conjunction with syntax on
 filetype on
+
+" Turn on relative numbers
+set relativenumber
