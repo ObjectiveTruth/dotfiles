@@ -5,11 +5,18 @@ source "$HOME/.homesick/repos/homeshick/homeshick.sh"
 #After any ! command that executes history. Command is placed in CMD instead of excuted
 shopt -s histverify
 
+# Sets the maximum number of lines to remember in .bash_history
+HISTSIZE=5000
+HISTFILESIZE=50000
+
 # Loads Completions
 for f in $(find -L $HOME/.homesick/repos/dotfiles/bash_completions/ -type f -name '*.bash')
 do
   source $f
 done
+
+# Enable Vi Mode in Bash
+set -o vi
 
 # Sets the prompt
 # Not used for now, see how the gitprompt.sh works out
