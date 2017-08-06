@@ -1,1 +1,17 @@
+
+# Bind ctrl-p and ctrl-n for forward and backwards search
+"\C-p":history-search-backward
+"\C-n":history-search-forward
+
+# Show tab completions with color if possible
+set colored-stats on
+
+# If more than one option, show the results one time instead of ringing the bell
+set show-all-if-ambiguous On
+set show-all-if-unmodified On
+
+# Shows just the end of the completion, good for large file dirs
+set completion-prefix-display-length 3
+
+# Ignore case when searching
 set completion-ignore-case On
