@@ -65,10 +65,13 @@ set_prompt () {
 }
 # Customization for bash-git-prompt as per https://github.com/magicmonty/bash-git-prompt
 GIT_PROMPT_FETCH_REMOTE_STATUS=0
-GIT_PROMPT_THEME=Solarized
+GIT_PROMPT_ONLY_IN_REPO=0
+GIT_PROMPT_THEME=objectivetruth_custom
 
 # Activate bash-git-prompt
-source $HOME/.homesick/repos/dotfiles/bash-git-prompt/gitprompt.sh
+if [[ -f "$HOME/.homesick/repos/dotfiles/bash-git-prompt/gitprompt.sh" ]]; then
+    source $HOME/.homesick/repos/dotfiles/bash-git-prompt/gitprompt.sh
+fi
 
 # If the gitprompt.sh fails, fall back to a still nice command prompt
 if [ $? -ne 0 ] ; then PROMPT_COMMAND='set_prompt' ; fi

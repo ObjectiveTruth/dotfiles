@@ -3,9 +3,9 @@
 # being displayed.
 
 git_prompt_help() {
-  source ${__GIT_PROMPT_DIR}/prompt-colors.sh
-  source ${__GIT_PROMPT_DIR}/themes/Default.bgptheme
- cat <<EOF | sed 's/\\\[\\033//g' | sed 's/\\\]//g'
+  source "${__GIT_PROMPT_DIR}/prompt-colors.sh"
+  source "${__GIT_PROMPT_DIR}/themes/Default.bgptheme"
+ cat <<EOF | sed 's/\\\[\\033//g' | sed 's/\\\]//g'
 The git prompt format is ${GIT_PROMPT_PREFIX}<BRANCH><TRACKING>${GIT_PROMPT_SEPARATOR}<LOCALSTATUS>${GIT_PROMPT_SUFFIX}
 
 BRANCH is a branch name, such as "master" or "stage", a tag name, or commit
@@ -34,7 +34,7 @@ EOF
 help_git_prompt() { git_prompt_help ; }
 
 git_prompt_examples() {
-  cat <<EOF | sed 's/\\\[\\033//g' | sed 's/\\\]//g'
+  cat <<EOF | sed 's/\\\[\\033//g' | sed 's/\\\]//g'
 These are examples of the git prompt:
 
   [${GIT_PROMPT_BRANCH}master${ResetColor}${GIT_PROMPT_REMOTE}↑·3${ResetColor}|${GIT_PROMPT_CHANGED}1${ResetColor}]  - on branch "master", ahead of remote by 3 commits, 1
@@ -61,15 +61,17 @@ EOF
 git_prompt_color_samples() {
   
   showColor() {
-    local color=$(eval echo "\${$1}")
-    echo -e "${color}$1${ResetColor}" | sed 's/\\\]//g'  | sed 's/\\\[//g'
+    local color=$(eval echo "\${${1}}")
+    echo -e "${color}${1}${ResetColor}" | sed 's/\\\]//g'  | sed 's/\\\[//g'
   }
 
+  local x=0
   while (( x < 8 )) ; do
-    showColor ${ColorNames[x]}
+    showColor "${ColorNames[x]}"
     showColor "Dim${ColorNames[x]}"
     showColor "Bold${ColorNames[x]}"
     showColor "Bright${ColorNames[x]}"
     (( x++ ))
   done
 }
+
