@@ -6,7 +6,7 @@ My public **castle** to be used with the [homeshick](https://github.com/andsens/
 
 1. Install homeshick from the upstream repo ([homeshick](https://github.com/andsens/homeshick))
 
-  `git clone git://github.com/andsens/homeshick.git $HOME/.homesick/repos/homeshick`
+  `git clone https://github.com/andsens/homeshick.git $HOME/.homesick/repos/homeshick`
 
 2. Add homeshick to the path (command below assumes bash, see upstream repo for more options)
 
