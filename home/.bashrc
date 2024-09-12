@@ -76,3 +76,7 @@ fi
 # If the gitprompt.sh fails, fall back to a still nice command prompt
 if [ $? -ne 0 ] ; then PROMPT_COMMAND='set_prompt' ; fi
 
+# If Mac OS X platform then disable the bash deprecation warning and suggestion to switch to zsh
+if [ "$(uname)" == "Darwin" ]; then
+    export BASH_SILENCE_DEPRECATION_WARNING=1
+fi
