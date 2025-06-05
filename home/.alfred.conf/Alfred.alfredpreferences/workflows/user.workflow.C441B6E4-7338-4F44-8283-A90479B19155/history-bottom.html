@@ -1,0 +1,72 @@
+<button id="back-to-top" title="Go to top"><i class="fas fa-angle-up"></i></button>
+
+<script>
+  window.onload = function() {
+    document.querySelector("#history_json").style.display = "none";
+
+
+    let system_message = document.querySelector("#openai-response .message.system pre").textContent;
+    document.querySelector("#openai-response .message.system").textContent = "";
+    let system_p = document.createElement("p");
+    system_p.textContent = system_message.trim();
+    document.querySelector("#openai-response .message.system").appendChild(system_p);
+
+    // change `#openai-response .message.user pre` to `#openai-response .message.user p` 
+    let user_pres = document.querySelectorAll("#openai-response .message.user pre");
+    for (let i = 0; i < user_pres.length; i++) {
+      let user_pre = user_pres[i];
+      let user_p = document.createElement("p");
+      user_p.textContent = user_pre.textContent.trim();
+      user_pre.parentElement.appendChild(user_p);
+      user_pre.parentElement.removeChild(user_pre);
+    }
+
+    changeMessageIcon("#params", "fa-sliders-h", "gray-color");
+    changeMessageIcon(".system", "fa-comment-alt", "system-color");
+    changeMessageIcon(".user", "fa-smile", "user-color");
+    changeMessageIcon(".assistant", "fa-robot", "assistant-color");
+
+    // Query all elements with the class 'sourceCode' that have an id
+    const elems = document.querySelectorAll('.sourceCode[id]');
+    elems.forEach(elem => {
+      if (elem.parentElement && elem.parentElement.className === elem.className && elem.parentElement.classList.contains('sourceCode')) {
+        while (elem.firstChild) {
+          elem.parentElement.appendChild(elem.firstChild);
+        }
+        elem.parentElement.removeChild(elem);
+      }
+    });
+  }
+
+  document.getElementById("continue_button").onclick = function() {
+    showSpinner(this.id);
+    continueChat();
+  }
+
+  document.getElementById("reset_button").onclick = function() {
+    reset(this.id);
+  }
+
+  document.getElementById("export_button").onclick = function() {
+    exportJSON();
+  }
+
+  document.getElementById("import_button").onclick = function() {
+    let r = confirm("Are you sure you want to import data?\n\nThis will delete the current chat data.");
+    if (r == false) {
+      return;
+    }
+    importJSON();
+  }
+
+  const backButton = document.getElementById("back-to-top");
+  window.onscroll = function() {scrollFunction()};
+
+  document.getElementById("back-to-top").onclick = function() {
+    topFunction();
+  }
+
+  document.getElementById("banner-title").addEventListener("click", function(){
+    reset();
+  });
+</script>

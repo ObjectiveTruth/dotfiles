@@ -1,0 +1,854 @@
+<div><span id='system_prompt_label'>SYSTEM PROMPT</span> <i id="system_prompt_switch" class="fas fa-toggle-off" style="cursor: pointer; color: #666;"></i></div>
+<textarea id="system_prompt" name="system_prompt" autocomplete="off" placeholder="Enter system prompt here" style="display: none;"></textarea>
+
+<div id='prompt_label'>USER PROMPT</div>
+<textarea id="prompt" name="prompt" autocomplete="off" placeholder="Enter your prompt here"></textarea>
+
+<div id="openai-response">
+  <div class="message" style="display: none;"></div>
+</div>
+
+<div class="message system" id="streaming" style="display: none;"><span class='system-color'><i class="fa fa-robot"></i></span> </div>
+
+<div class="button-panel" style="display: flex; align-items: center; margin-top: 7px; margin-bottom: 3px;">
+  <button id="execute_button"><span class="accent-color"><i class="fas fa-rocket"></i></span> Send Message</button>
+  <button id="clear_button"><span class="accent-color"><i class="fas fa-eraser"></i></span> Clear</button>
+</div>
+
+<div id="speech_buttons" class="button-panel" style="display: flex; align-items: center;">
+  <button class="small" id="play_button"><span><i class="fas fa-play"></i> Play TTS</span> <span id="tts_status" style="display: none;"></span></button>
+  <button class="small" id="stop_button"><span><i class="fas fa-stop"></i> Stop TTS</span></button>
+  <button class="small" id="set_auto_speech_button"><span><i class="fas fa-comment-dots"></i> Set Auto Speech</span></button>
+  <button class="small" id="set_voice_button"><span><i class="fas fa-users-cog"></i> Set Voice</span></button>
+  <button id="voice" class="small" style="width: 110px;"><span><i class="fas fa-microphone"></i></span> Voice Input</button>
+  <div id="amplitude" style="display: none;">
+    <div style="display: flex; align-items: flex-end;">
+      <canvas id="amplitude-chart" style="width: 150px; height: 28px;" width="300" height="56"></canvas>
+    </div>
+  </div>
+</div>
+
+<div id="import_buttons" class="button-panel" style="display: flex; align-items: center;">
+  <button id="import_button" class="small"><span><i class="fas fa-file-upload"></i></span> Import Chat</button>
+  <button id="image_button" class="small"><span><i class="fas fa-image"></i></span> Import Image</button>
+  <span class="gray-color" id="file-name" style="font-size: smaller;">Note: Voice input resets image. Set image after voice input</span>
+  <input type="file" id="file-input" accept=".png, .jpg, .jpeg, .gif, .webp" style="display: none;">
+  <div id="base64-output" style="display: none;"></div>
+  <span id="error-message"></span>
+</div>
+
+<div id="uploaded-image-container" style="margin: 10px 0; text-align: left; display: none;">
+  <img id="uploaded-image" style="max-height: 200px; width: auto; object-fit: contain;">
+</div>
+
+<div class="border-bottom"></div>
+
+<div class="control-section">
+  <div class="header">
+    <input type="checkbox" id="text" name="text" checked>
+    <label for="text" id="label_for_text" class="accent-color"><b>Text Query / Chat Mode</b></label>
+  </div>
+
+  <div class="control">
+    <label for="model">Model </label>
+    <select id="model" name="model" value="gpt-4.1-mini">
+      <option disabled="disabled">──gpt 4.1 models──</option>
+      <option value="gpt-4.1">gpt-4.1</option>
+      <option value="gpt-4.1-2025-04-14">gpt-4.1-2025-04-14</option>
+      <option value="gpt-4.1-mini">gpt-4.1-mini</option>
+      <option value="gpt-4.1-mini-2025-04-14">gpt-4.1-mini-2025-04-14</option>
+      <option value="gpt-4.1-nano">gpt-4.1-nano</option>
+      <option value="gpt-4.1-nano-2025-04-14">gpt-4.1-nano-2025-04-14</option>
+      <option disabled="disabled">──gpt 4o models──</option>
+      <option value="gpt-4o-mini">gpt-4o-mini</option>
+      <option value="gpt-4o-mini-2024-07-18">gpt-4o-mini-2024-07-18</option>
+      <option value="gpt-4o">gpt-4o</option>
+      <option value="gpt-4o-2024-11-20">gpt-4o-2024-11-20</option>
+      <option disabled="disabled">──reasoning models──</option>
+      <option value="o4-mini">o4-mini</option>
+      <option value="o4-mini-2025-04-16">o4-mini-2025-04-16</option>
+      <option value="o3">o3</option>
+      <option value="o3-2025-04-16">o3-2025-04-16</option>
+      <option value="o3-mini">o3-mini</option>
+      <option value="o3-mini-2025-01-31">o3-mini-2025-01-31</option>
+      <option value="o1">o1</option>
+      <option value="o1-2024-12-17">o1-2024-12-17</option>
+      <option disabled="disabled">──other models──</option>
+      <option value="chatgpt-4o-latest">chatgpt-4o-latest</option>
+    </select>
+    <a target="_blank" rel="noopener noreferrer" href='https://beta.openai.com/docs/models/models' style='text-decoration:none;'><span style="font-size: small">[?]</span></a>
+
+    <label for="reasoning_effort">Reasoning Effort </label>
+    <select id="reasoning_effort" name="reasoning_effort">
+      <option value="high">high</option>
+      <option value="medium">medium</option>
+      <option value="low" selected>low</option>
+    </select>
+    <a target="_blank" rel="noopener noreferrer" href='https://platform.openai.com/docs/guides/reasoning#reasoning-effort' style='text-decoration:none;'><span style="font-size: small">[?]</span></a>
+
+    <span style='display: inline-block; width: 0;'></span>
+    <label for="max_tokens">Max Tokens </label>
+    <input type="number" id="max_tokens" name="max_tokens" min="0" max="16385" step="1" value="2048" required> 
+    <a target="_blank" rel="noopener noreferrer" href='https://beta.openai.com/docs/api-reference/completions/create#completions/create-max_tokens' style='text-decoration:none;'><span style="font-size: small">[?]</span></a>
+
+    <span style='display: inline-block; width: 0;'></span>
+    <label for="max_tokens">Memory Span </label>
+    <input type="number" id="memory_span" name="memory_span" min="2" max="20" step="1" value="4" required> 
+    <span style='display: inline-block; width: 0;'></span>
+    <label for="emoji">Add Emoji 😃 </label>
+    <input type="checkbox" id="emoji" name="emoji" > <br />
+  </div>
+
+  <div class="control">
+    <div>
+      <label for="temperature">Temperature </label>
+      <input type="range" id="temperature" name="temperature" min="0.0" max="1.0" value="0.3" step="0.1" oninput="this.nextElementSibling.value = parseFloat(this.value).toFixed(1);">
+      <output>0.3</output>
+      <a target="_blank" rel="noopener noreferrer" href='https://beta.openai.com/docs/api-reference/completions/create#completions/create-temperature' style='text-decoration:none;'><span style="font-size: small">[?]</span></a>
+      <span style='display: inline-block; width: 0;'></span>
+      <label for="top_p">Top P </label>
+      <input type="range" id="top_p" name="top_p" min="0.0" max="1.0" value="0.0" step="0.1" oninput="this.nextElementSibling.value = parseFloat(this.value).toFixed(1);">
+      <output>0.0</output>
+      <a targes="_blank" rel="noopener noreferrer" href='https://beta.openai.com/docs/api-reference/completions/create#completions/create-top_p' style='text-decoration:none;'><span style="font-size: small">[?]</span></a>
+      <span style='display: inline-block; width: 0;'></span>
+      <label for="presence_penalty">Presence Penalty </label>
+      <input type="range" id="presence_penalty" name="presence_penalty" min="-2.0" max="2.0" value="0.0" step="0.1" oninput="this.nextElementSibling.value = parseFloat(this.value).toFixed(1);">
+      <output>0.0</output>
+      <a target="_blank" rel="noopener noreferrer" href='https://beta.openai.com/docs/api-reference/completions/create#completions/create-presence_penalty' style='text-decoration:none;'><span style="font-size: small">[?]</span></a>
+      <span style='display: inline-block; width: 0;'></span>
+      <label for="frequency_penalty">Frequency Penalty </label>
+      <input type="range" id="frequency_penalty" name="frequency_penalty" min="-2.0" max="2.0" value="0.0" step="0.1" oninput="this.nextElementSibling.value = parseFloat(this.value).toFixed(1);">
+      <output>0.0</output>
+      <a target="_blank" rel="noopener noreferrer" href='https://beta.openai.com/docs/api-reference/completions/create#completions/create-frequency_penalty' style='text-decoration:none;'><span style="font-size: small">[?]</span></a>
+    </div>
+    <!-- <p class="gray-color" style="margin-top:5px; margin-bottom:0; "><small>The <code>beta</code>  models are available to a limited number of users. Please note that system prompts and parameter settings are not accessible for <code>beta</code> models, and inference may take significantly longer than with other models.</small></p> -->
+  </div>
+</div>
+
+<div class="control-section">
+  <div class="header">
+    <input type="checkbox" id="image" name="image" >
+    <label for="image" id="label_for_image" class="gray-color"><b>Image Generation/Editing Mode</b></label>
+  </div>
+
+  <div class="control">
+    <label for="ig_model">Image Generation Model </label>
+    <select id="ig_model" name="ig_model">
+      <option value="gpt-image-1">gpt-image-1</option>
+      <option value="dall-e-3">dall-e-3</option>
+      <option value="dall-e-2">dall-e-2</option>
+    </select>    
+  </div>
+
+  <div class="control" id="gpt_image">
+    <label for="image_size_gpt">Image Size </label>
+    <select id="image_size_gpt" name="image_size_gpt">
+      <option value="auto" selected>auto (default)</option>
+      <option value="1024x1024">1024x1024 (square)</option>
+      <option value="1536x1024">1536x1024 (landscape)</option>
+      <option value="1024x1536">1024x1536 (portrait)</option>
+    </select>
+    <span style='display: inline-block; width: 0;'></span>
+    <label for="quality_gpt">Quality </label>
+    <select id="quality_gpt" name="quality_gpt">
+      <option value="auto" selected >auto</option>
+      <option value="low">low</option>
+      <option value="medium">medium</option>
+      <option value="high">high</option>
+    </select>
+    <span style='display: inline-block; width: 0;'></span>
+    <label for="moderation_gpt">Content Moderation </label>
+    <select id="moderation_gpt" name="moderation_gpt">
+      <option value="auto" selected>auto (default)</option>
+      <option value="low">low</option>
+    </select>
+    <span style='display: inline-block; width: 0;'></span>
+    <label for="background_gpt">Background </label>
+    <select id="background_gpt" name="background_gpt">
+      <option value="auto">auto</option>
+      <option value="transparent">transparent</option>
+      <option value="opaque">opaque</option>
+    </select>
+    <div class="gray-color" style="font-size:smaller; margin-top:10px; margin-bottom:-10px;">To ensure this model is used responsibly, you may need to complete the <a href="https://help.openai.com/en/articles/10910291-api-organization-verification">API Organization Verification</a> from your <a href="https://platform.openai.com/settings/organization/general">developer console</a> before using <code>gpt-image-1</code>.</div>
+  </div>
+
+  <div class="control" id="dalle3">
+    <label for="image_size_d3">Image Size </label>
+    <select id="image_size_d3" name="image_size_d3">
+      <option value="1024x1024">1024x1024</option>
+      <option value="1792x1024" selected>1792x1024</option>
+      <option value="1024x1792">1024x1792</option>
+    </select>
+    <span style='display: inline-block; width: 0;'></span>
+    <label for="quality_d3">Quality </label>
+    <select id="quality_d3" name="quality_d3">
+      <option value="standard">standard</option>
+      <option value="hd">hd</option>
+    </select>
+    <span style='display: inline-block; width: 0;'></span>
+    <label for="style_d3">Style </label>
+    <select id="style_d3" name="style_d3">
+      <option value="vivid">vivid</option>
+      <option value="natural">natural</option>
+    </select>
+  </div>
+
+  <div class="control" id="dalle2" style="display:none;">
+    <label for="num_images">Number of Images </label>
+    <input type="number" id="num_images" name="num_images" min="1" max="10" step="1" value="1" required> 
+    <span style='display: inline-block; width: 0;'></span>
+    <label for="image_size_d2">Image Size </label>
+    <select id="image_size_d2" name="image_size_d2">
+      <option value="256x256">256x256</option>
+      <option value="512x512" selected>512x512</option>
+      <option value="1024x1024">1024x1024</option>
+    </select>
+  </div>
+</div>
+
+<div>
+  <p class="gray-color">Download the <a href='https://github.com/yohasebe/openai-chat-api-workflow/raw/main/openai-chat-api.alfredworkflow' style='text-decoration: none;'>latest version</a> of OpenAI Chat API Workflow for Alfred.&nbsp;&nbsp;<button class="small" id="open_readme_button"><span><i class="fab fa-readme"></i> README</span></button> <button class="small" id="workflow_config_button"><span><i class="fas fa-cog"></i> Open Config</span></button> <button class="small" id="update_button"> <span><i class="fas fa-check"></i> Check for Update</span></button></p>
+</div>
+
+<button id="cancel_button" style="display: none;"><i class="far fa-window-close"></i> Cancel</button>
+
+<script>
+
+  const reasoningModels = [
+    "o4-mini",
+    "o4-mini-2025-04-16",
+    "o3",
+    "o3-2025-04-16",
+    "o3-mini",
+    "o3-mini-2025-01-31",
+    "o1",
+    "o1-2024-12-17"
+  ];
+
+  const editor = document.getElementById("prompt");
+
+  function execute(){
+      // Check if Image Generation Mode + image uploaded but not using gpt-image-1
+      const imageGenerationMode = document.getElementById("image").checked === true;
+      const imageSelected = document.getElementById("base64-output") && 
+                           document.getElementById("base64-output").textContent.trim() !== "";
+      const selectedImageModel = document.getElementById("ig_model").value;
+      
+      if (imageGenerationMode && imageSelected && selectedImageModel !== "gpt-image-1") {
+          alert("When an image is uploaded in Image Generation Mode, you must use the gpt-image-1 model.");
+          return;
+      }
+      
+      document.getElementById("streaming").innerHTML = "<span class='system-color'><i class='fa fa-robot'></i> <b>Assistant</b></span><p></p><span id='streaming-caret'> ●</span>";
+
+      const model_elem = document.getElementById("model")
+      let model = model_elem.value;
+      let reasoning_effort = document.getElementById("reasoning_effort").value;
+
+      let mode;
+      if(document.getElementById("image").checked === true){
+          model = document.getElementById("ig_model").value;
+          if ( model === "gpt-image-1") {
+              mode = "gpt_image";
+          } else if (model === "dall-e-3") {
+              mode = "image_d3";
+          } else if (model === "dall-e-2") {
+              mode = "image_d2";
+          }
+      } else {
+          mode = "text";
+      }
+
+      let raw_prompt = editor.value;
+      let prompt = redir(raw_prompt);
+
+      let raw_system_prompt = document.getElementById("system_prompt").value;
+      let system_prompt = redir(raw_system_prompt);
+
+      let max_tokens = encodeURI(document.getElementById("max_tokens").value);
+      let memory_span = encodeURI(document.getElementById("memory_span").value);
+      let temperature = encodeURI(document.getElementById("temperature").value);
+      let top_p = encodeURI(document.getElementById("top_p").value);
+      let presence_penalty = encodeURI(document.getElementById("presence_penalty").value);
+      let frequency_penalty = encodeURI(document.getElementById("frequency_penalty").value);
+      let emoji = encodeURI(document.getElementById("emoji").checked);
+      let num_images = encodeURI(document.getElementById("num_images").value);
+      let image_size_d2 = encodeURI(document.getElementById("image_size_d2").value);
+      let image_size_d3 = encodeURI(document.getElementById("image_size_d3").value);
+      let quality_d3 = encodeURI(document.getElementById("quality_d3").value);
+      let style_d3 = encodeURI(document.getElementById("style_d3").value);
+      let image_size_gpt = encodeURI(document.getElementById("image_size_gpt").value);
+      let quality_gpt = encodeURI(document.getElementById("quality_gpt").value);
+      let moderation_gpt = encodeURI(document.getElementById("moderation_gpt").value);
+      let background_gpt = encodeURI(document.getElementById("background_gpt").value);
+
+      const parameters = document.getElementById("parameters");
+      const timeout = parameters.dataset.timeout;
+      const max_characters = parameters.dataset.max_characters;
+      const loopback = parameters.dataset.loopback;
+      const websocket_port = parameters.dataset.websocket_port;
+
+      let url;
+      let upload_image;
+
+        if(prompt === ""){
+          alert("Textarea is empty.");
+        } else if (prompt.length > max_characters) {
+          alert("The prompt is too long. The maximum number of characters is " + max_characters + ".");
+        } else if (mode === "text" && model === "") {
+          alert("Model name is not set.");
+        } else {
+          const base64Output = document.getElementById("base64-output");
+          let upload_image = null;
+
+          if(base64Output && base64Output.textContent) {
+            upload_image = base64Output.textContent;
+          }
+
+          if (mode === "text"){
+            if (upload_image) {
+              // URL-encode Base64 data so it travels intact through Alfred
+              const imgArg = encodeURIComponent(upload_image);
+              url = "alfred://runtrigger/com.yohasebe.openai/openai-text/?argument="
+                  + mode + "%20" + model + "%20" + reasoning_effort + "%20" + max_tokens
+                  + "%20" + memory_span + "%20" + temperature + "%20" + top_p
+                  + "%20" + presence_penalty + "%20" + frequency_penalty
+                  + "%20" + timeout + "%20" + emoji + "%20" + prompt
+                  + "%20||SYSTEM_PROMPT||%20" + system_prompt
+                  + "%20||UPLOAD_IMAGE||%20" + imgArg;
+            } else {
+              url = "alfred://runtrigger/com.yohasebe.openai/openai-text/?argument="
+                  + mode + "%20" + model + "%20" + reasoning_effort + "%20" + max_tokens
+                  + "%20" + memory_span + "%20" + temperature + "%20" + top_p
+                  + "%20" + presence_penalty + "%20" + frequency_penalty
+                  + "%20" + timeout + "%20" + emoji + "%20" + prompt
+                  + "%20||SYSTEM_PROMPT||%20" + system_prompt;
+            }
+          } else if (mode === "image_d2") {
+              url = "alfred://runtrigger/com.yohasebe.openai/openai-image/?argument=" + mode + "%20" + model + "%20" + num_images + "%20" + image_size_d2 + "%20" + timeout + "%20" + prompt;
+          } else if (mode === "image_d3") {
+              url = "alfred://runtrigger/com.yohasebe.openai/openai-image/?argument=" + mode + "%20" + model + "%20" + image_size_d3 + "%20" + quality_d3 + "%20" + style_d3 + "%20" + timeout + "%20" + prompt;
+          } else if (mode === "gpt_image") {
+              // Check if we have an uploaded image for image editing
+              if (upload_image && model === "gpt-image-1") {
+                // URL-encode the Base64 data URL so it travels intact through Alfred
+                const imgArg = encodeURIComponent(upload_image);
+                url = "alfred://runtrigger/com.yohasebe.openai/openai-image/?argument=" + 
+                      mode + "%20" + model + "%20" + image_size_gpt + "%20" + quality_gpt + "%20" + 
+                      moderation_gpt + "%20" + background_gpt + "%20" + timeout + "%20" + prompt + 
+                      "%20||UPLOAD_IMAGE||%20" + imgArg;
+              } else {
+                url = "alfred://runtrigger/com.yohasebe.openai/openai-image/?argument=" + 
+                      mode + "%20" + model + "%20" + image_size_gpt + "%20" + quality_gpt + "%20" + 
+                      moderation_gpt + "%20" + background_gpt + "%20" + timeout + "%20" + prompt;
+              }
+          }
+          window.location = url;
+
+          progress("#openai-response .message:last-child", "");
+          document.getElementById("execute_button").hidden = true;
+          document.getElementById("clear_button").hidden = true;
+          document.getElementById("import_button").hidden = true;
+          document.getElementById("play_button").hidden = true;
+          document.getElementById("stop_button").hidden = true;
+          document.getElementById("set_voice_button").hidden = true;
+          document.getElementById("set_auto_speech_button").hidden = true;
+          document.getElementById("voice").hidden = true;
+
+          document.getElementById("workflow_config_button").disabled = true;
+          document.getElementById("open_readme_button").disabled = true;
+          document.getElementById("update_button").disabled = true;
+
+          let cancel_button = document.getElementById("cancel_button")
+          cancel_button.style.display = ''
+          cancel_button.focus();
+
+          document.getElementById("streaming").style.display = '';
+          let dom = document.getElementById("streaming");
+
+          let stream = startStreaming(dom, loopback, websocket_port, 1000);
+      }
+  }
+
+  document.getElementById("execute_button").addEventListener("click", function() {
+    execute();
+  });
+
+  document.getElementById("clear_button").addEventListener("click", function() {
+    clearTextarea();
+  });
+
+  document.getElementById("import_button").addEventListener("click", function() {
+    importJSON();
+  });
+
+  document.getElementById("voice").addEventListener("click", function () {
+    controlRecording("webui");
+  });
+
+  document.getElementById("cancel_button").addEventListener("click", function() {
+    cancel("webui");
+    this.style.display = "none";
+  });
+
+  document.getElementById("workflow_config_button").addEventListener("click", function() {
+    openWorkflowConfig();
+  });
+
+  document.getElementById("open_readme_button").addEventListener("click", function() {
+    openReadme();
+  });
+
+  document.getElementById("update_button").addEventListener("click", function() {
+    checkUpdate();
+  });
+
+  document.getElementById("max_tokens").addEventListener("change", function() {
+    if(this.value === "0"){
+      this.style.backgroundColor = "#f0f0f0";
+    } else if(this.value === ""){
+      this.value = "0";
+      this.style.backgroundColor = "#f0f0f0";
+    } else {
+      this.style.backgroundColor = "#fff";
+    }
+  });
+  
+  document.getElementById("ig_model").addEventListener("change", function() {
+    if (this.value === "gpt-image-1") {
+      document.getElementById("dalle3").style.display = "none";
+      document.getElementById("dalle2").style.display = "none";
+      document.getElementById("gpt_image").style.display = "";
+    } else if (this.value === "dall-e-3") {
+      document.getElementById("gpt_image").style.display = "none";
+      document.getElementById("dalle2").style.display = "none";
+      document.getElementById("dalle3").style.display = "";
+    } else {
+      document.getElementById("gpt_image").style.display = "none";
+      document.getElementById("dalle3").style.display = "none";
+      document.getElementById("dalle2").style.display = "";
+    }
+    
+    // Verify model selection is valid with current image state
+    const imageSelected = document.getElementById("base64-output") && 
+                         document.getElementById("base64-output").textContent.trim() !== "";
+    const imageGenerationMode = document.getElementById("image").checked;
+    
+    if (imageGenerationMode && imageSelected && this.value !== "gpt-image-1") {
+      alert("When an image is uploaded in Image Generation Mode, you must use the gpt-image-1 model.");
+      this.value = "gpt-image-1";
+      document.getElementById("dalle3").style.display = "none";
+      document.getElementById("dalle2").style.display = "none";
+      document.getElementById("gpt_image").style.display = "";
+    }
+  })
+
+  document.getElementById("play_button").addEventListener("click", function() {
+    let text = document.getElementById("prompt").value;
+    if (text.trim() !== "") {
+      let tts_status = document.getElementById("tts_status");
+      tts_status.style.display = "";
+      tts_status.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+      setTimeout(function() {
+        tts_status.innerHTML = "";
+      }, 2000);
+      playTTS(text);
+    }
+  });
+
+  document.getElementById("stop_button").addEventListener("click", function() {
+    stopTTS();
+  });
+
+  document.getElementById("set_voice_button").addEventListener("click", function() {
+    setVoice();
+  });
+
+  document.getElementById("set_auto_speech_button").addEventListener("click", function() {
+    setAutoSpeech();
+  });
+  
+  // Add event listeners for focus and blur events
+  window.addEventListener('focus', showFocusedState);
+  window.addEventListener('blur', showBlurredState);
+
+  // Initialize the indicator based on the current focus state
+  if (document.hasFocus()) {
+    showFocusedState();
+  } else {
+    showBlurredState();
+  }
+
+  window.onload = function() {
+    const imageButton = document.getElementById("image_button");
+    const fileInput = document.getElementById("file-input");
+    const fileNameSpan = document.getElementById("file-name");
+    const base64Output = document.getElementById("base64-output");
+    const errorMessage = document.getElementById("error-message");
+
+    // Open the file dialog when the button is clicked
+    imageButton.addEventListener("click", () => {
+      fileInput.click();
+    });
+
+    // Handle file selection
+    fileInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        // Check file size (20MB limit)
+        if (file.size > 20 * 1024 * 1024) {
+          displayError("File size exceeds 20MB. Please select a smaller file.");
+          clearSelection();
+          return;
+        }
+
+        displayFileName(file.name); // Display the file name
+        resizeAndConvertToBase64(file)
+          .then((base64urlString) => {
+            console.log("Generated base64url string length:", base64urlString.length);
+            base64Output.textContent = base64urlString;
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            displayError(error.message);
+            clearSelection();
+          });
+      }
+    });
+
+    // Function to display the selected file name
+    function displayFileName(fileName) {
+      fileNameSpan.innerHTML = `${fileName} <span id="image-clear-button">x</span>`;
+      const imageClearButton = document.getElementById("image-clear-button");
+
+      // Handle the clear button click
+      imageClearButton.addEventListener("click", () => {
+        clearSelection();
+      });
+    }
+
+    // Function to convert Base64 to Base64URL
+    function convertBase64ToBase64URL(base64String) {
+        // Convert Base64 to Base64URL
+        return base64String
+            .replace(/\+/g, '-')  // Replace + with -
+            .replace(/\//g, '_')  // Replace / with _
+            .replace(/\./g, '_')  // Replace . with _
+            .replace(/=+$/, '');  // Remove trailing =
+    }
+
+    // Function to resize the image and convert it to a Base64URL string
+    function resizeAndConvertToBase64(
+      file,
+      maxBase64Length = 30000, // Maximum Base64 string length
+      maxWidth = 512,            // Maximum width
+      maxHeight = 512,           // Maximum height
+      minWidth = 64,             // Minimum width
+      minHeight = 64,            // Minimum height
+      minQuality = 0.4           // Minimum JPEG quality
+    ) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+          const img = new Image();
+
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+
+            // Initial resize to fit within maxWidth and maxHeight
+            const aspect = width / height;
+            if (width > maxWidth) {
+              width = maxWidth;
+              height = Math.round(width / aspect);
+            }
+            if (height > maxHeight) {
+              height = maxHeight;
+              width = Math.round(height * aspect);
+            }
+
+            // Recursive function to reduce size and quality
+            function resizeAndCheck(w, h, quality) {
+              const canvas = document.createElement("canvas");
+              const ctx = canvas.getContext("2d");
+              canvas.width = w;
+              canvas.height = h;
+              ctx.drawImage(img, 0, 0, w, h);
+
+              // Compress as JPEG
+              const base64String = canvas.toDataURL('image/jpeg', quality);
+
+              // Check both data size and image size
+              if (
+                (base64String.length > maxBase64Length || w > maxWidth || h > maxHeight) &&
+                w > minWidth && h > minHeight && quality > minQuality
+              ) {
+                // Reduce size and quality by 10% each step
+                return resizeAndCheck(
+                  Math.floor(w * 0.9),
+                  Math.floor(h * 0.9),
+                  Math.max(quality - 0.05, minQuality)
+                );
+              } else {
+                // Show preview
+                const imageContainer = document.getElementById('uploaded-image-container');
+                const uploadedImage = document.getElementById('uploaded-image');
+                uploadedImage.src = base64String;
+                imageContainer.style.display = 'block';
+                
+                // Check model restrictions after image is uploaded
+                checkImageAndModelRestrictions();
+
+                resolve(base64String);
+              }
+            }
+
+            resizeAndCheck(Math.floor(width), Math.floor(height), 0.7);
+          };
+
+          img.onerror = () => {
+            reject(new Error('Failed to load image'));
+          };
+
+          img.src = event.target.result;
+        };
+
+        reader.onerror = () => {
+          reject(new Error('Failed to read file'));
+        };
+
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Function to display error messages
+    function displayError(message) {
+      errorMessage.textContent = message;
+    }
+
+    // Function to clear the file selection
+    function clearSelection() {
+      fileInput.value = ""; // Reset the file input
+      fileNameSpan.textContent = ""; // Clear the file name display
+      base64Output.textContent = ""; // Clear the Base64 output
+      errorMessage.textContent = ""; // Clear error messages
+      base64String = ""; // Reset the Base64 string
+      const imageContainer = document.getElementById('uploaded-image-container');
+      const uploadedImage = document.getElementById('uploaded-image');
+      uploadedImage.src = '';
+      imageContainer.style.display = 'none';
+      
+      // Re-check model restrictions after clearing image
+      checkImageAndModelRestrictions();
+    }
+
+
+    const parameters = document.getElementById("parameters");
+
+
+    if(parameters.dataset.hide_speech == "1"){
+      document.getElementById("speech_buttons").style.display = "none";
+    }
+
+    let system_prompt = "";
+    if(parameters.dataset.system_prompt){
+      system_prompt = parameters.dataset.system_prompt;
+    }
+
+    document.getElementById("system_prompt_switch").addEventListener("click", function() {
+      toggleVisibility("system_prompt");
+    });
+
+    const model = parameters.dataset.model;
+    const reasoning_effort = parameters.dataset.reasoning_effort;
+    const max_tokens = parameters.dataset.max_tokens;
+    const memory_span = parameters.dataset.memory_span;
+    const temperature = parameters.dataset.temperature;
+    const top_p = parameters.dataset.top_p;
+    const presence_penalty = parameters.dataset.presence_penalty;
+    const frequency_penalty = parameters.dataset.frequency_penalty;
+    const emoji = parameters.dataset.emoji === "1";
+    const num_images = parameters.dataset.num_images;
+    const image_size_d2 = parameters.dataset.image_size_d2;
+    const image_size_d3 = parameters.dataset.image_size_d3;
+    const quality_d3 = parameters.dataset.quality_d3;
+    const style_d3 = parameters.dataset.style_d3;
+
+    const image_size_gpt = parameters.dataset.image_size_gpt;
+    const quality_gpt = parameters.dataset.quality_gpt;
+    const moderation_gpt = parameters.dataset.moderation_gpt;
+    const background_gpt = parameters.dataset.background_gpt;
+
+    const ig_model = parameters.dataset.ig_model;
+
+
+    document.getElementById("system_prompt").value = system_prompt;
+    document.querySelector("#model option[value='" + model + "']").selected = true;
+    document.querySelector("#reasoning_effort option[value='" + reasoning_effort + "']").selected = true;
+
+    document.getElementById("max_tokens").setAttribute("value", max_tokens);
+    document.getElementById("memory_span").setAttribute("value", memory_span);
+    document.getElementById("temperature").setAttribute("value", temperature);
+    document.getElementById("temperature").nextElementSibling.value = temperature;
+    document.getElementById("top_p").setAttribute("value", top_p);
+    document.getElementById("top_p").nextElementSibling.value = top_p;
+    document.getElementById("presence_penalty").setAttribute("value", presence_penalty);
+    document.getElementById("presence_penalty").nextElementSibling.value = presence_penalty;
+    document.getElementById("emoji").checked = emoji;
+    document.getElementById("frequency_penalty").setAttribute("value", frequency_penalty);
+    document.getElementById("frequency_penalty").nextElementSibling.value = frequency_penalty;
+
+    document.querySelector("#ig_model option[value='" + ig_model + "']").selected = true;
+    document.getElementById("num_images").setAttribute("value", num_images);
+    document.querySelector("#image_size_d2 option[value='" + image_size_d2 + "']").selected = true;
+    document.querySelector("#image_size_d3 option[value='" + image_size_d3 + "']").selected = true;
+    document.querySelector("#quality_d3 option[value='" + quality_d3 + "']").selected = true;
+    document.querySelector("#style_d3 option[value='" + style_d3 + "']").selected = true;
+
+    document.querySelector("#image_size_gpt option[value='" + image_size_gpt + "']").selected = true;
+    document.querySelector("#quality_gpt option[value='" + quality_gpt + "']").selected = true;
+    document.querySelector("#moderation_gpt option[value='" + moderation_gpt + "']").selected = true;
+    document.querySelector("#background_gpt option[value='" + background_gpt + "']").selected = true;
+
+    document.getElementsByName("ig_model").forEach(function(e) {
+      e.disabled = true;
+    });
+
+    document.getElementById("image_size_d2").disabled = true;
+    document.getElementById("image_size_d3").disabled = true;
+    document.getElementById("num_images").disabled = true; 
+    document.getElementById("quality_d3").disabled = true; 
+    document.getElementById("style_d3").disabled = true; 
+
+    document.getElementById("image_size_gpt").disabled = true;
+    document.getElementById("quality_gpt").disabled = true;
+    document.getElementById("moderation_gpt").disabled = true; 
+    document.getElementById("background_gpt").disabled = true; 
+
+    document.getElementById("image").addEventListener("change", function() {
+      if(this.checked) {
+        document.getElementById("text").checked = false;
+        setToImageMode();
+        checkImageAndModelRestrictions();
+      } else {
+        document.getElementById("image").checked = true;
+        return false;
+      }
+    });
+
+    document.getElementById("text").addEventListener("change", function() {
+      if(this.checked) {
+        document.getElementById("image").checked = false;
+        setToTextMode();
+      } else {
+        document.getElementById("text").checked = true;
+        return false;
+      }
+    });
+    
+    // Function to check if an image is selected and enforce gpt-image-1 model restriction
+    function checkImageAndModelRestrictions() {
+      const imageSelected = document.getElementById("base64-output") && 
+                           document.getElementById("base64-output").textContent.trim() !== "";
+      const imageGenerationMode = document.getElementById("image").checked;
+      
+      if (imageGenerationMode && imageSelected) {
+        // Force gpt-image-1 selection when image is selected
+        document.getElementById("ig_model").value = "gpt-image-1";
+        document.getElementById("ig_model").disabled = true;
+        
+        // Show UI feedback
+        document.getElementById("dalle3").style.display = "none";
+        document.getElementById("dalle2").style.display = "none";
+        document.getElementById("gpt_image").style.display = "";
+      } else if (imageGenerationMode) {
+        // Re-enable model selection when in image mode but no image is selected
+        document.getElementById("ig_model").disabled = false;
+      }
+    }
+
+    if (ig_model === "gpt-image-1") {
+      document.getElementById("gpt_image").style.display = "";
+      document.getElementById("dalle3").style.display = "none";
+      document.getElementById("dalle2").style.display = "none";
+    } else if (ig_model === "dall-e-3") {
+      document.getElementById("dalle3").style.display = "";
+      document.getElementById("gpt_image").style.display = "none";
+      document.getElementById("dalle2").style.display = "none";
+    } else {
+      document.getElementById("dalle2").style.display = "";
+      document.getElementById("gpt_image").style.display = "none";
+      document.getElementById("dalle3").style.display = "none";
+    }
+
+    if(parameters.dataset){
+      const mode = parameters.dataset.mode;
+      if(mode === "image"){
+        document.getElementById("image").click();
+        setToImageMode();
+      } else if(mode == "whisper"){
+        document.getElementById("text").click();
+        setToTextMode();
+      } else {
+        document.getElementById("text").click();
+        setToTextMode();
+      }
+    }
+
+    let last_message = document.getElementById("last_message");
+    if(last_message && last_message.innerHTML.trim() !== ""){
+
+      let textarea = document.createElement('textarea');
+      textarea.innerHTML = last_message.innerHTML;
+      editor.value = textarea.value.replace(/<br>/g, "\n").replace(/<\/?pre>/g, "").replace(/<\/?p>/g, " ").trim();
+      last_message.remove();
+      textarea.remove();
+      // flash the textarea to attract attention
+      editor.className = "flash";
+      setTimeout(function(){
+        editor.className = "";
+      }, 1000);
+    }
+
+    autoResize("prompt");
+    setTimeout(function() {
+      editor.focus();
+    }, 1000);
+  }
+
+  document.getElementById("model").addEventListener("change", function() {
+    const effortSelect = document.getElementById("reasoning_effort");
+    const maxTokensInput = document.getElementById("max_tokens");
+    const temperatureInput = document.getElementById("temperature");
+    const topPInput = document.getElementById("top_p");
+    const presencePenaltyInput = document.getElementById("presence_penalty");
+    const frequencyPenaltyInput = document.getElementById("frequency_penalty");
+
+    if (reasoningModels.includes(this.value)) {
+      effortSelect.disabled = false;
+      maxTokensInput.disabled = true;
+      temperatureInput.disabled = true;
+      topPInput.disabled = true;
+      presencePenaltyInput.disabled = true;
+      frequencyPenaltyInput.disabled = true;
+    } else {
+      effortSelect.disabled = true;
+      maxTokensInput.disabled = false;
+      temperatureInput.disabled = false;
+      topPInput.disabled = false;
+      presencePenaltyInput.disabled = false;
+      frequencyPenaltyInput.disabled = false;
+    }
+  });
+
+  window.addEventListener("DOMContentLoaded", function() {
+    const modelSelect = document.getElementById("model");
+
+    // 0.5 sec after content is loaded,
+    setTimeout(function() {
+      modelSelect.dispatchEvent(new Event("change"));
+    }, 500);
+
+  });
+</script>

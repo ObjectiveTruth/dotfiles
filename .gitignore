@@ -1,5 +1,8 @@
 # Created by https://www.gitignore.io/api/osx,windows,linux,vim
 
+### Alfred ###
+home/.alfred.conf/Alfred.alfredpreferences/workflows/**/prefs.plist
+
 ### OSX ###
 .DS_Store
 .AppleDouble

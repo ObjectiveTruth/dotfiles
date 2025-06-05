@@ -1,0 +1,450 @@
+<script>
+
+ // Function to update the value of `speak` environment variable
+  function setAutoSpeech(){
+    url = "alfred://runtrigger/com.yohasebe.openai/openai-set-auto-speech"
+    window.location = url;
+  }
+
+ // Function to update the UI for focused state
+ function showFocusedState() {
+   document.getElementById('focusStatus').innerHTML = 'The web UI is active';
+   document.getElementById('focusStatusIcon').style.color = 'green';
+ }
+
+ // Function to update the UI for blurred state
+ function showBlurredState() {
+   document.getElementById('focusStatus').innerHTML = 'The web UI is out of focus - click to activate';
+   document.getElementById('focusStatusIcon').style.color = 'orange';
+ }
+
+function blink(div, message){
+  div.className = "blink";
+  div.innerText = message;
+  // append the div to #openai-response
+  document.querySelector("#openai-response").appendChild(div);
+  setInterval(function(){
+    div.style.opacity = (div.style.opacity == 0 ? 1 : 0);
+  }, 480);
+}
+
+function progress(selector, message){
+  message = message.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Create the message div
+  let div;
+  if(message !== ""){
+    div = document.createElement("div");
+    div.className = "message user";
+    let p = document.createElement("p");
+    // set .progress class to the p
+    div.appendChild(p);
+    p.innerHTML = "<span class='user-color'><i class='fas fa-smile'></i></span> " + message;
+    document.querySelector(selector).parentNode.appendChild(div);
+  }
+
+  // Create the container
+  let container = document.createElement("div");
+  container.className = "container";
+
+  // Create and append the face icon
+  let face = document.createElement("span");
+  face.innerHTML = "<i class='fas fa-smile'></i>";
+  container.appendChild(face);
+
+  // Create and append the progress bar
+  let bar = document.createElement("div");
+  bar.className = "progress";
+  container.appendChild(bar);
+
+  // Create and append the robot icon
+  let robot = document.createElement("span");
+  robot.innerHTML = "<i class='fas fa-robot'></i>";
+  container.appendChild(robot);
+
+  // Append the message div and the container to the intended parent
+  document.querySelector(selector).parentNode.appendChild(container);
+
+  // Delete the container after 180 seconds
+  setTimeout(function(){
+    container.remove();
+    blink(div, "Something went wrong. Close this window and please try again.");
+  }, 180000);
+}
+
+function checkUpdate() {
+  url = "alfred://runtrigger/com.yohasebe.openai/openai-update"
+  window.location = url;
+}
+
+
+function show_history() {
+  url = "alfred://runtrigger/com.yohasebe.openai/openai-history"
+  window.location = url;
+}
+
+function setToImageMode(){
+  document.getElementsByName("ig_model").forEach(function(e) {
+    e.disabled = false;
+  });
+  document.getElementById("label_for_image").className = "accent-color";
+  document.getElementById("label_for_text").className = "gray-color";
+
+
+  document.getElementById("model").disabled = true;
+  document.getElementById("reasoning_effort").disabled = true;
+  document.getElementById("temperature").disabled = true;
+  document.getElementById("top_p").disabled = true;
+  document.getElementById("presence_penalty").disabled = true;
+  document.getElementById("frequency_penalty").disabled = true;
+  document.getElementById("max_tokens").disabled = true;
+  document.getElementById("memory_span").disabled = true;
+  document.getElementById("emoji").disabled = true; 
+
+  document.getElementById("image_size_d2").disabled = false;
+  document.getElementById("image_size_d3").disabled = false;
+  document.getElementById("num_images").disabled = false; 
+  document.getElementById("quality_d3").disabled = false; 
+  document.getElementById("style_d3").disabled = false; 
+
+  document.getElementById("image_size_gpt").disabled = false; 
+  document.getElementById("quality_gpt").disabled = false; 
+  document.getElementById("moderation_gpt").disabled = false; 
+  document.getElementById("background_gpt").disabled = false; 
+}
+
+function setToTextMode(){
+  document.getElementsByName("ig_model").forEach(function(e) {
+    e.disabled = true;
+  });
+  document.getElementById("label_for_text").className = "accent-color";
+  document.getElementById("label_for_image").className = "gray-color";
+
+  document.getElementById("model").disabled = false;
+  document.getElementById("reasoning_effort").disabled = false;
+  document.getElementById("temperature").disabled = false;
+  document.getElementById("top_p").disabled = false;
+  document.getElementById("presence_penalty").disabled = false;
+  document.getElementById("frequency_penalty").disabled = false;
+  document.getElementById("max_tokens").disabled = false;
+  document.getElementById("memory_span").disabled = false;
+  document.getElementById("emoji").disabled = false; 
+
+  document.getElementById("image_size_d2").disabled = true;
+  document.getElementById("image_size_d3").disabled = true;
+  document.getElementById("num_images").disabled = true; 
+  document.getElementById("quality_d3").disabled = true; 
+  document.getElementById("style_d3").disabled = true; 
+
+  document.getElementById("image_size_gpt").disabled = true; 
+  document.getElementById("quality_gpt").disabled = true; 
+  document.getElementById("moderation_gpt").disabled = true; 
+  document.getElementById("background_gpt").disabled = true; 
+}
+
+function redir(url) {
+  url = url.replace(/%/g, "%25").replace(/\+/g, "%2B").replace(/&/g, "%26").replace(/#/g, "%23");
+  url = encodeURIComponent(url);
+  return url;
+}
+
+function changeMessageIcon(classIdName, fa_icon, className){
+  let messages = document.querySelectorAll("div" + classIdName);
+  for(let i = 0; i < messages.length; i++){
+    try {
+      let p = messages[i].querySelector("p");
+      let d = document.createElement("div");
+      d.className = className;
+      const role = classIdName.charAt(1).toUpperCase() + classIdName.slice(2);
+      d.innerHTML = "<span class='role'><i class='fas " + fa_icon + "'></i> <b>" + role + "</b></span>";
+      // insert d before p
+      messages[i].insertBefore(d, p);
+    }
+    catch (error) {
+      // do nothing
+    }
+  }
+}
+
+function reset(buttonId){
+  let r = confirm("Are you sure you want to start a new chat?\n\nThis will reset the current chat including the chat history and the system prompt.");
+  if (r == false) {
+    return;
+  } else if (!!buttonId) {
+    showSpinner(buttonId);
+  }
+  let url = "alfred://runtrigger/com.yohasebe.openai/openai-webui"
+  window.location = url;
+}
+
+function clearTextarea(){
+  let editor = document.getElementById("prompt");
+  editor.value = "";
+  autoResize("prompt");
+  editor.focus();
+}
+
+function edit(){
+  document.getElementById("edit_button").disabled = true;
+  let user_message = document.querySelector("#openai-response .message.user p").innerText.trim();
+
+  user_message = redir("<pre>" + user_message.split("\n").join("<br>") + "</pre>");
+
+  user_message = "<pre>" + user_message.split("\n").join("<br>") + "</pre>";
+  let url = "alfred://runtrigger/com.yohasebe.openai/openai-edit/?argument=" + user_message;
+  window.location = url;
+}
+
+function edit_simple_page_prompt(mode){
+  document.getElementById("edit_button").disabled = true;
+  let user_message = document.querySelector("#openai-response .message.user p").innerText.trim();
+  // user_message = redir("<pre>" + user_message.split("\n").join("<br>") + "</pre>");
+  user_message = "<pre>" + user_message.split("\n").join("<br>") + "</pre>";
+  let url = "alfred://runtrigger/com.yohasebe.openai/openai-webui/?argument=" + mode + "=||=" + user_message;
+  window.location = url;
+}
+
+function cancel(mode){
+  let url;
+  if (mode === "alfred" || mode === "chat"){
+    let user_message = document.querySelector("#openai-response .message.user:not(#dummy) p:last-child").innerText;
+    user_message = user_message.replace(/\n/g, '<br>\n');
+    url = "alfred://runtrigger/com.yohasebe.openai/openai-terminate/?argument=" + mode + "=||=" + user_message;
+    window.location = url;
+  } else if (mode === "webui"){
+    url = "alfred://runtrigger/com.yohasebe.openai/openai-terminate-silently";
+    window.location = url;
+    document.getElementById("streaming").innerHTML = "<span class='system-color'><i class='fa fa-robot'></i></span> ";
+    document.getElementById("streaming").style.display = "none";
+    document.getElementById("openai-response").innerHTML = "<div class='message' style='display: none;'></div>";
+    document.getElementById("execute_button").hidden = false;
+    document.getElementById("clear_button").hidden = false;
+    document.getElementById("import_button").hidden = false;
+    document.getElementById("play_button").hidden = false;
+    document.getElementById("stop_button").hidden = false;
+    document.getElementById("set_voice_button").hidden = false;
+    document.getElementById("set_auto_speech_button").hidden = false;
+    document.getElementById("voice").hidden = false;
+    document.getElementById("workflow_config_button").disabled = false;
+    document.getElementById("open_readme_button").disabled = false;
+    document.getElementById("update_button").disabled = false;
+  }
+}
+
+function continueChat(){
+  let url = "alfred://runtrigger/com.yohasebe.openai/openai-continue"
+  window.location = url;
+}
+
+function startStreaming(dom, loopback, websocket_port, initialWait = 0) {
+  const streamingCaretInterval = setInterval(() => {
+    const rect = streamingCaret.getBoundingClientRect();
+    if (rect.top < 0 || rect.bottom > window.innerHeight) {
+      streamingCaret.scrollIntoView();
+    }
+  }, 500);
+  const streamingCaret = dom.querySelector("#streaming-caret");
+
+  const maxRetries = 100; // Maximum number of retries
+  let retryCount = 0;
+  let isConnected = false;
+
+  function connectWebSocket() {
+    let ws = null;
+    const connectionTimeout = 10000;
+  
+    try {
+      ws = new WebSocket("ws://" + loopback + ":" + websocket_port);
+      isConnected = true;
+    } catch (error) {
+      console.log('WebSocket error:', error);
+      return;
+    }
+  
+    const timeoutId = setTimeout(() => {
+      if (!isConnected) {
+        console.log('WebSocket connection timeout. Closing attempt.');
+        if (retryCount < maxRetries) {
+          retryCount++;
+          setTimeout(connectWebSocket, 1000);
+        } else {
+          console.log('WebSocket connection timeout. Max retries exceeded.');
+          ws.close();
+        }
+      }
+    }, connectionTimeout);
+  
+    ws.onopen = function() {
+      clearTimeout(timeoutId);
+      console.log('WebSocket is connected.');
+      isConnected = true;
+      document.querySelector(".progress").className += " connected";
+      retryCount = 0;
+    };
+
+    ws.onmessage = function(event) {
+      if(event.data === "END_OF_STREAM"){
+        ws.close();
+        return;
+      } else {
+        const li = document.createElement('span');
+        li.textContent = event.data;
+        streamingCaret.before(li);
+      }
+    };
+
+    ws.onerror = function(error) {
+      console.log('WebSocket Error:', error);
+      ws.close();
+      isConnected = false;
+      if (retryCount < maxRetries) {
+        retryCount++;
+        connectWebSocket();
+      } else {
+        retryCount = 0;
+        console.log('WebSocket connection timeout. Max retries exceeded.');
+      }
+    };
+
+    ws.onclose = function(event) {
+      ws = null;
+    };
+  }
+
+  try {
+    setTimeout(connectWebSocket, initialWait);
+  } catch (error) {
+    console.log(error);
+    const error_message = "❗️ ERROR: websocket error";
+    url = "alfred://runtrigger/com.yohasebe.openai/openai-terminate/?argument=error=||=" + error_message
+    window.location = url;
+  }
+}
+
+function importJSON(){
+  url = "alfred://runtrigger/com.yohasebe.openai/openai-import"
+  window.location = url;
+}
+
+function exportJSON(){
+  let json = document.querySelector("#history_json pre code").innerText;
+  // replace `\\"` with `\\\"` (e.g. quoted double qutations inside a quoted double qutations)
+  json = json.replace(/\\\\"/g, '\\\\\\"');
+
+  let blob = new Blob([json], {type: "application/json"});
+  let url = URL.createObjectURL(blob);
+  let a = document.createElement("a");
+  a.href = url;
+  a.download = "history.json";
+  a.click();
+}
+
+function removeEmojis(text){
+  // in case of error, return the original text
+  try {
+    return text.replace(/\p{Extended_Pictographic}/gu, "");
+  }
+  catch (error) {
+    return text;
+  }
+}
+
+function stopTTS(text) {
+  let url = "alfred://runtrigger/com.yohasebe.openai/openai-stop-tts/";
+  window.location = url;
+}
+
+function playTTS(text) {
+  const assistant_message = removeEmojis(text);
+  const url = "alfred://runtrigger/com.yohasebe.openai/openai-play-tts/?argument=" + assistant_message;
+  window.location = url;
+}
+
+function autoResize(id) {
+    let textarea = document.getElementById(id);
+
+    const offset = textarea.offsetHeight - textarea.clientHeight;
+    textarea.style.height = 'auto';
+    textarea.style.height = textarea.scrollHeight + offset + 'px';
+    if (textarea) {
+      const offset = textarea.offsetHeight - textarea.clientHeight;
+      textarea.addEventListener('input', function (event) {
+        event.target.style.height = 'auto';
+        event.target.style.height = event.target.scrollHeight + offset + 'px';
+      });
+      textarea.addEventListener('paste', function (event) {
+        event.target.style.height = 'auto';
+        event.target.style.height = event.target.scrollHeight + offset + 'px';
+      });
+      textarea.removeAttribute('data-autoresize');
+    } else {
+      console.log("Textarea with id: " + id + " not found.");
+    }
+}
+
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    backButton.style.display = "block";
+  } else {
+    backButton.style.display = "none";
+  }
+}
+
+// When the user clicks on the button, scroll to the top of the document
+function topFunction() {
+  const scrollDuration = 500;
+  const scrollStep = -window.scrollY / (scrollDuration / 15),
+    scrollInterval = setInterval(function(){
+      if ( window.scrollY != 0 ) {
+        window.scrollBy( 0, scrollStep );
+      }
+      else clearInterval(scrollInterval); 
+    },15);
+}
+
+function setVoice() {
+  url = "alfred://runtrigger/com.yohasebe.openai/openai-set-voice"
+  window.location = url;
+};
+
+function openWorkflowConfig() {
+  url = "alfred://runtrigger/com.yohasebe.openai/openai-workflow-config"
+  window.location = url;
+};
+
+function openReadme() {
+  url = "https://github.com/yohasebe/openai-chat-api-workflow"
+  window.open(url, '_blank');
+};
+
+function startRecording() {
+  url = "alfred://runtrigger/com.yohasebe.openai/openai-start-recording"
+  window.location = url;
+}
+
+function stopRecording() {
+  url = "alfred://runtrigger/com.yohasebe.openai/openai-stop-recording"
+  window.location = url;
+}
+
+function showSpinner(buttonId){
+  // show spinner of fontawesome at the end of the button text
+  let button = document.getElementById(buttonId);
+  button.innerHTML = button.innerHTML + " <i class='fas fa-spinner fa-spin'></i>";
+}
+
+function toggleVisibility(){
+  let system_prompt = document.getElementById("system_prompt");
+  if(system_prompt.style.display === "none"){
+    system_prompt.style.display = "";
+    document.getElementById("system_prompt_switch").className = "fas fa-toggle-on";
+    autoResize("system_prompt");
+    system_prompt.focus();
+  } else {
+    system_prompt.style.display = "none";
+    document.getElementById("system_prompt_switch").className = "fas fa-toggle-off";
+    document.getElementById("prompt").focus();
+  }
+}
+
+</script>

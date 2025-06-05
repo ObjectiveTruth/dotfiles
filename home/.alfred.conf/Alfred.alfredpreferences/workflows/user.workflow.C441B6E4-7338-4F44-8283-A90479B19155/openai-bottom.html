@@ -1,0 +1,525 @@
+<div class="button-panel" style="margin-bottom:5px;">
+  <button id="history_button"><span class="accent-color"><i class="fas fa-comments"></i></span> Show Entire Chat</button>
+  <button id="reset_button"><span class="accent-color"><i class="fas fa-file-alt"></i></span> Start New Chat</button>
+</div>
+
+<div class="message user" id="dummy" style="display: none;"><p></p></div>
+</div>
+<!-- #openai-response -->
+
+<div class="message system" id="streaming" style="display: none;"><span class="system-color"><i class="fa fa-robot"></i> <b>Assistant</b></span><p></p><span id="streaming-caret"> ●</span></div>
+
+<textarea id="prompt" name="prompt" autocomplete="off" placeholder="Enter your prompt here"></textarea>
+
+<div class="button-panel" style="display: flex; align-items: center; margin-top: 7px; margin-bottom: 3px;">
+  <button id="execute_button"><span class="accent-color"><i class="fas fa-rocket"></i></span> Send Message</button>
+  <button id="clear_button"><span class="accent-color"><i class="fas fa-eraser"></i></span> Clear</button>
+</div>
+
+<div id="speech_buttons" class="button-panel" style="display: flex; align-items: center;">
+  <button id="set_auto_speech_button" class="small"><span><i class="fas fa-comment-dots"></i> Set Auto Speech</span></button>
+  <button id="set_voice_button" class="small"><span><i class="fas fa-users-cog"></i> Set Voice</span></button>
+  <button id="voice" class="small" style="width: 110px;"><span><i class="fas fa-microphone"></i></span> Voice Input</button>
+  <div id="amplitude" style="display: none;">
+    <div style="display: flex; align-items: flex-end;">
+      <canvas id="amplitude-chart" style="width: 150px; height: 28px;" width="300" height="56"></canvas>
+    </div>
+  </div>
+</div>
+
+<div id="import_buttons" class="button-panel" style="display: flex; align-items: center;">
+  <button id="image_button" class="small"><span><i class="fas fa-image"></i></span> Import Image</button>
+  <span class="gray-color" id="file-name" style="font-size: smaller;">Note: Voice input resets image. Set image after voice input.</span>
+  <input type="file" id="file-input" accept=".png, .jpg, .jpeg, .gif, .webp" style="display: none;">
+  <div id="base64-output" style="display: none;"></div>
+  <span id="error-message"></span>
+</div>
+
+<div id="uploaded-image-container" style="margin: 10px 0; text-align: left; display: none;">
+  <img id="uploaded-image" style="max-height: 200px; width: auto; object-fit: contain;">
+</div>
+
+<p id="clipboard-message" style="color:gray; font-size: small;"><i class="fas fa-clipboard"></i> Text content copied to clipboard.</p>
+
+<button id="back-to-top" title="Go to top"><i class="fas fa-angle-up"></i></button>
+<button id="cancel_button" style="display: none;"><i class="far fa-window-close"></i> Cancel</button>
+<script>
+  const editor = document.getElementById("prompt");
+
+  window.addEventListener('focus', showFocusedState);
+  window.addEventListener('blur', showBlurredState);
+
+  if (document.hasFocus()) {
+    showFocusedState();
+  } else {
+    showBlurredState();
+  }
+
+  let parameters;
+
+  window.onload = function() {
+    const imageButton = document.getElementById("image_button");
+    const fileInput = document.getElementById("file-input");
+    const fileNameSpan = document.getElementById("file-name");
+    const base64Output = document.getElementById("base64-output");
+    const errorMessage = document.getElementById("error-message");
+
+    // Open the file dialog when the button is clicked
+    imageButton.addEventListener("click", () => {
+      fileInput.click();
+    });
+
+    // Handle file selection
+    fileInput.addEventListener("change", (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        // Check file size (20MB limit)
+        if (file.size > 20 * 1024 * 1024) {
+          displayError("File size exceeds 20MB. Please select a smaller file.");
+          clearSelection();
+          return;
+        }
+
+        displayFileName(file.name); // Display the file name
+        resizeAndConvertToBase64(file)
+          .then((base64urlString) => {
+            console.log("Generated base64url string length:", base64urlString.length);
+            base64Output.textContent = base64urlString;
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+            displayError(error.message);
+            clearSelection();
+          });
+      }
+    });
+
+    // Function to display the selected file name
+    function displayFileName(fileName) {
+      fileNameSpan.innerHTML = `${fileName} <span id="image-clear-button">x</span>`;
+      const imageClearButton = document.getElementById("image-clear-button");
+
+      // Handle the clear button click
+      imageClearButton.addEventListener("click", () => {
+        clearSelection();
+      });
+    }
+
+    // Function to convert Base64 to Base64URL
+    function convertBase64ToBase64URL(base64String) {
+        // Convert Base64 to Base64URL
+        return base64String
+            .replace(/\+/g, '-')  // Replace + with -
+            .replace(/\//g, '_')  // Replace / with _
+            .replace(/\./g, '_')  // Replace . with _
+            .replace(/=+$/, '');  // Remove trailing =
+    }
+
+    // Function to resize the image and convert it to a Base64URL string
+    function resizeAndConvertToBase64(
+      file,
+      // Tune this to Alfred's URL-length limit (≈20k–30k chars)
+      maxBase64Length = 30000, // Maximum Base64 string length
+      maxWidth = 512,          // Maximum width
+      maxHeight = 512,         // Maximum height
+      minWidth = 64,           // Minimum width
+      minHeight = 64,          // Minimum height
+      minQuality = 0.4         // Minimum JPEG quality
+    ) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+
+        reader.onload = (event) => {
+          const img = new Image();
+
+          img.onload = () => {
+            let width = img.width;
+            let height = img.height;
+
+            // Initial resize to fit within maxWidth and maxHeight
+            const aspect = width / height;
+            if (width > maxWidth) {
+              width = maxWidth;
+              height = Math.round(width / aspect);
+            }
+            if (height > maxHeight) {
+              height = maxHeight;
+              width = Math.round(height * aspect);
+            }
+
+            // Recursive function to reduce size and quality
+            function resizeAndCheck(w, h, quality) {
+              const canvas = document.createElement("canvas");
+              const ctx = canvas.getContext("2d");
+              canvas.width = w;
+              canvas.height = h;
+              ctx.drawImage(img, 0, 0, w, h);
+
+              // Compress as JPEG
+              const base64String = canvas.toDataURL('image/jpeg', quality);
+
+              // Check both data size and image size
+              if (
+                (base64String.length > maxBase64Length || w > maxWidth || h > maxHeight) &&
+                w > minWidth && h > minHeight && quality > minQuality
+              ) {
+                // Reduce size and quality by 10% each step
+                return resizeAndCheck(
+                  Math.floor(w * 0.9),
+                  Math.floor(h * 0.9),
+                  Math.max(quality - 0.05, minQuality)
+                );
+              } else {
+                // Show preview
+                const imageContainer = document.getElementById('uploaded-image-container');
+                const uploadedImage = document.getElementById('uploaded-image');
+                uploadedImage.src = base64String;
+                imageContainer.style.display = 'block';
+
+                resolve(base64String);
+              }
+            }
+
+            resizeAndCheck(Math.floor(width), Math.floor(height), 0.7);
+          };
+
+          img.onerror = () => {
+            reject(new Error('Failed to load image'));
+          };
+
+          img.src = event.target.result;
+        };
+
+        reader.onerror = () => {
+          reject(new Error('Failed to read file'));
+        };
+
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Function to display error messages
+    function displayError(message) {
+      errorMessage.textContent = message;
+    }
+
+    // Function to clear the file selection
+    function clearSelection() {
+      fileInput.value = ""; // Reset the file input
+      fileNameSpan.textContent = ""; // Clear the file name display
+      base64Output.textContent = ""; // Clear the Base64 output
+      errorMessage.textContent = ""; // Clear error messages
+      base64String = ""; // Reset the Base64 string
+      const imageContainer = document.getElementById('uploaded-image-container');
+      const uploadedImage = document.getElementById('uploaded-image');
+      uploadedImage.src = '';
+      imageContainer.style.display = 'none';
+    }
+
+    parameters = document.getElementById("parameters");
+
+    if(parameters.dataset.hide_speech == "1"){
+      document.getElementById("speech_buttons").style.display = "none";
+    }
+
+    let sections = document.querySelectorAll("section");
+    let userPre = document.querySelector("#openai-response .message.user pre");
+
+    if(userPre){
+      let user_message = userPre.textContent;
+      document.querySelector("#openai-response .message.user").textContent = "";
+      let user_p = document.createElement("p");
+      user_p.textContent = user_message.trim();
+      document.querySelector("#openai-response .message.user").appendChild(user_p);
+
+      let editButton = document.createElement("button");
+      editButton.className = "small_plus";
+      editButton.innerHTML = '<span><i class="fas fa-pencil-alt"></i> Edit Message</span>';
+      editButton.id = "edit_button";
+
+      editButton.onclick = function() {
+        showSpinner(this.id);
+        editButton.style.color = "#555";
+        edit();
+      }
+
+      document.querySelector("#openai-response .message.user").appendChild(editButton);
+
+      changeMessageIcon(".user", "fa-smile", "user-color");
+      changeMessageIcon(".assistant", "fa-robot", "assistant-color");
+
+      for(let i = 0; i < sections.length; i++){
+        sections[i].outerHTML = sections[i].outerHTML.replace(/section/g, "div");
+      }
+      window.scrollTo(0, document.body.scrollHeight);
+      let div = document.querySelector("#openai-response .message.assistant");
+
+      if (parameters.dataset.hide_speech !== "1") {
+        let playButton = document.createElement("button");
+        playButton.className = "small_plus";
+        playButton.innerHTML = '<span><i class="fas fa-play"></i> Play TTS</span> <span id="tts_status" style="display: none;"></span>';
+        playButton.id = "play_button";
+        playButton.onclick = function() {
+          let tts_status = document.getElementById("tts_status");
+          let div = document.querySelector("#openai-response .message.assistant");
+          let clone = div.cloneNode(true);
+          clone.querySelectorAll("button").forEach(function(button){
+            button.remove();
+          });
+          clone.querySelectorAll(".role").forEach(function(div){
+            div.remove();
+          });
+          let text = clone.innerText;
+          if (text.trim() !== "") {
+            tts_status.style.display = "";
+            tts_status.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            setTimeout(function() {
+              tts_status.innerHTML = "";
+            }, 2000);
+
+            playTTS(text);
+          }
+        }
+        div.appendChild(playButton);
+
+        let stopButton = document.createElement("button");
+        stopButton.className = "small_plus";
+        stopButton.innerHTML = '<span><i class="fas fa-stop"></i> Stop TTS</span>';
+        stopButton.id = "stop_button";
+        stopButton.onclick = function() {
+          stopTTS();
+        }
+        div.appendChild(stopButton);
+      }
+
+      let pre = document.querySelectorAll("pre code");
+      for(let i = 0; i < pre.length; i++){
+        let button = document.createElement("button");
+        button.className = "copy_this";
+        button.innerHTML = '<span><i class="fas fa-clipboard"></i> Copy this snippet</span>';
+        button.onclick = function() {
+          let text = pre[i].textContent;
+          navigator.clipboard.writeText(text).then(function() {
+
+            button.innerHTML = '<span><i class="fas fa-check"></i> Copied to clipboard</span>';
+
+            setTimeout(function() {
+              button.innerHTML = '<span><i class="fas fa-clipboard"></i> Copy this snippet</span>';
+            }, 2000);
+          });
+        }
+
+        let button_elem = document.createElement("div");
+        button_elem.appendChild(button);
+        if(pre[i].parentElement.tagName === "PRE"){
+          pre[i].parentElement.appendChild(button_elem);
+        } else {
+          pre[i].appendChild(button_elem);
+        }
+      }
+    }
+
+    let last_message = document.getElementById("last_message");
+    if(last_message && last_message.innerHTML.trim() !== ""){
+
+      let textarea = document.createElement('textarea');
+      textarea.innerHTML = last_message.innerHTML;
+
+      let processedText = textarea.value.replace(/<\/?pre>/g, "").replace(/<\/?p>/g, " ").replace(/<br\s*\/?>/g, "\n").trim();
+      let decodedText;
+      try {
+        decodedText = decodeURIComponent(processedText);
+      } catch (e) {
+        console.error("URL decoding error:", e);
+        decodedText = processedText;
+      }
+
+      editor.value = decodedText;
+      last_message.remove();
+      textarea.remove();
+
+      editor.className = "flash";
+      setTimeout(function(){
+        editor.className = "";
+      }, 1000);
+    }
+
+    let data = parameters.dataset;
+    if (data.speak == "1" && data.continue != "true") {
+      let div = document.querySelector("#openai-response .message.assistant");
+      if(div){
+        let clone = div.cloneNode(true);
+        let buttons = clone.querySelectorAll("button");
+        for(let i = 0; i < buttons.length; i++){
+          buttons[i].remove();
+        }
+        clone.querySelectorAll(".role").forEach(function(div){
+          div.remove();
+        });
+        let text = clone.innerText;
+        if (text.trim() !== "") {
+          let tts_status = document.getElementById("tts_status");
+          if(tts_status){
+            tts_status.style.display = "";
+            tts_status.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            setTimeout(function() {
+              tts_status.innerHTML = "";
+            }, 2000);
+          }
+          playTTS(text);
+        }
+      }
+    }
+
+    autoResize("prompt");
+    setTimeout(function() {
+      editor.focus();
+    }, 500);
+  }
+
+  function execute() {
+    let mode = "chat";
+
+    let raw_prompt = editor.value;
+    let prompt = redir(raw_prompt);
+
+    editor.value = "";
+    let url;
+
+    if(prompt === ""){
+      alert("Textarea is empty.");
+    } else {
+      const base64Output = document.getElementById("base64-output");
+      let upload_image = null;
+
+      if(base64Output && base64Output.textContent) {
+        upload_image = base64Output.textContent;
+      }
+
+      // Check if we're in image generation mode and have an uploaded image
+      const isImageMode = document.querySelector('input[name="ig_model"]:not(:disabled)') !== null;
+      const isGptImageModel = isImageMode && document.querySelector('input[value="gpt-image-1"]:checked') !== null;
+      
+      if (upload_image && isImageMode && isGptImageModel) {
+        // URL-encode the Base64 data URL so it travels intact through Alfred
+        const imgArg = encodeURIComponent(upload_image);
+        url = "alfred://runtrigger/com.yohasebe.openai/openai-image/?argument="
+            + "edit" + "%20" + prompt + "%20||UPLOAD_IMAGE||%20" + imgArg;
+      } else if (upload_image) {
+        // URL-encode the Base64 data URL so it travels intact through Alfred
+        const imgArg = encodeURIComponent(upload_image);
+        url = "alfred://runtrigger/com.yohasebe.openai/openai-chat/?argument="
+            + mode + "%20" + prompt + "%20||UPLOAD_IMAGE||%20" + imgArg;
+      } else {
+        // No image: invoke chat directly or image generation
+        if (isImageMode) {
+          url = "alfred://runtrigger/com.yohasebe.openai/openai-image/?argument="
+            + prompt;
+        } else {
+          url = "alfred://runtrigger/com.yohasebe.openai/openai-chat/?argument="
+            + mode + "%20" + prompt;
+        }
+      }
+
+      window.location = url;
+
+      progress("#openai-response .message:last-child", raw_prompt);
+      document.getElementById("execute_button").hidden = true;
+      document.getElementById("reset_button").hidden = true;
+      document.getElementById("history_button").hidden = true;
+      document.getElementById("clear_button").hidden = true;
+
+
+      if(document.getElementById("play_button")){
+        document.getElementById("play_button").hidden = true;
+      }
+
+      if(document.getElementById("stop_button")){
+        document.getElementById("stop_button").hidden = true;
+      }
+
+      if(document.getElementById("edit_button")){
+        document.getElementById("edit_button").style.display = "none";
+      }
+
+      if(document.getElementById("play_button")){
+        document.getElementById("play_button").style.display = "none";
+      }
+
+      if(document.getElementById("stop_button")){
+        document.getElementById("stop_button").style.display = "none";
+      }
+
+      if(document.getElementById("set_voice_button")){
+        document.getElementById("set_voice_button").style.display = "none";
+      }
+
+      if(document.getElementById("voice")){
+        document.getElementById("voice").style.display = "none";
+      }
+
+      if(document.getElementById("set_auto_speech_button")){
+        document.getElementById("set_auto_speech_button").style.display = "none";
+      }
+
+      let cancel_button = document.getElementById("cancel_button")
+      cancel_button.style.display = '';
+      cancel_button.focus();
+
+      document.getElementById("streaming").style.display = '';
+      let dom = document.getElementById("streaming");
+
+      editor.style.display = "none";
+
+      const loopback = parameters.dataset.loopback;
+      const websocket_port = parameters.dataset.websocket_port;
+      startStreaming(dom, loopback, websocket_port, 1000);
+    }
+  }
+
+  document.getElementById("execute_button").onclick = function() {
+    execute();
+  }
+
+  document.getElementById("clear_button").onclick = function() {
+    clearTextarea();
+  }
+
+  document.getElementById("history_button").onclick = function() {
+    showSpinner(this.id);
+    show_history();
+  }
+
+  document.getElementById("reset_button").onclick = function() {
+    reset(this.id);
+  }
+
+  document.getElementById("set_voice_button").addEventListener("click", function() {
+    setVoice();
+  });
+
+  document.getElementById("set_auto_speech_button").addEventListener("click", function() {
+    setAutoSpeech();
+  });
+
+  document.getElementById("cancel_button").onclick = function() {
+    cancel("chat");
+    this.style.display = "none";
+  }
+
+  document.getElementById("voice").onclick = function () {
+    controlRecording("chat");
+  }
+
+  const backButton = document.getElementById("back-to-top");
+  window.onscroll = function() {scrollFunction()};
+
+  document.getElementById("back-to-top").onclick = function() {
+    topFunction();
+  }
+
+  document.getElementById("banner-title").addEventListener("click", function(){
+    reset();
+  });
+
+</script>

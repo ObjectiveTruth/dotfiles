@@ -1,0 +1,382 @@
+<script src="https://cdn.jsdelivr.net/npm/opus-media-recorder@latest/OpusMediaRecorder.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/opus-media-recorder@latest/encoderWorker.umd.js"></script>
+<script>
+//////////////////////////////
+// Detect silence
+//////////////////////////////
+
+function detectSilence(stream, onSilenceCallback, silenceDuration, silenceThreshold = 16) {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const analyser = audioContext.createAnalyser();
+  const streamNode = audioContext.createMediaStreamSource(stream);
+  streamNode.connect(analyser);
+  analyser.fftSize = 2048;
+  const bufferLength = 32;
+  const dataArray = new Uint8Array(bufferLength);
+
+  let silenceStart = performance.now();
+  let triggered = false;
+
+  function checkSilence() {
+    analyser.getByteFrequencyData(dataArray);
+    const totalAmplitude = dataArray.reduce((a, b) => a + b);
+    const averageAmplitude = totalAmplitude / bufferLength;
+    const isSilent = averageAmplitude < silenceThreshold;
+
+    if (isSilent) {
+      const now = performance.now();
+      if (!triggered && now - silenceStart > silenceDuration) {
+        onSilenceCallback();
+        triggered = true;
+      }
+    } else {
+      silenceStart = performance.now();
+      triggered = false;
+    }
+
+    // Update the bar chart with the average amplitude value
+    const chartCanvas = document.querySelector("#amplitude-chart");
+
+    if (chartCanvas) {
+      const chartContext = chartCanvas.getContext("2d");
+      const chartWidth = chartCanvas.width;
+      const chartHeight = chartCanvas.height;
+      const barSpacing = 4;
+      const barWidth = (chartWidth - (bufferLength - 1) * barSpacing) / bufferLength;
+      chartContext.clearRect(0, 0, chartWidth, chartHeight);
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = dataArray[i] / 255 * chartHeight / 2;
+        const x = i * (barWidth + barSpacing);
+        const y = chartHeight / 2 - barHeight;
+        chartContext.fillStyle = '#666';
+
+        // Draw upward bar
+        chartContext.fillRect(x, y, barWidth, barHeight);
+
+        // Draw downward bar
+        chartContext.fillRect(x, chartHeight / 2, barWidth, barHeight);
+      }
+    }
+
+    // Request the next frame
+    requestAnimationFrame(checkSilence);
+  }
+
+  checkSilence();
+
+  // Return a function to close the audio context
+  return function () {
+    audioContext.close();
+  };
+}
+
+//////////////////////////////
+// Audio format conversion
+//////////////////////////////
+
+// Convert audio blob to WAV format
+async function convertToWav(audioBlob) {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const arrayBuffer = await audioBlob.arrayBuffer();
+  const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+  
+  // Get audio data
+  const numberOfChannels = audioBuffer.numberOfChannels;
+  const length = audioBuffer.length;
+  const sampleRate = audioBuffer.sampleRate;
+  const channelData = [];
+  
+  // Extract channel data
+  for (let i = 0; i < numberOfChannels; i++) {
+    channelData.push(audioBuffer.getChannelData(i));
+  }
+  
+  // Create WAV file
+  const wavBuffer = createWavFile(channelData, {
+    sampleRate: sampleRate,
+    numberOfChannels: numberOfChannels
+  });
+  
+  return new Blob([wavBuffer], { type: 'audio/wav' });
+}
+
+// Create WAV file from audio data
+function createWavFile(channelData, opts = {}) {
+  const sampleRate = opts.sampleRate || 44100;
+  const numberOfChannels = opts.numberOfChannels || 2;
+  const format = 1; // PCM format
+  const bitDepth = 16; // 16-bit audio
+  
+  const bytesPerSample = bitDepth / 8;
+  const blockAlign = numberOfChannels * bytesPerSample;
+  
+  // Calculate data size
+  let dataSize = 0;
+  for (let i = 0; i < numberOfChannels; i++) {
+    dataSize += channelData[i].length * bytesPerSample;
+  }
+  
+  // Calculate total file size
+  const headerSize = 44;
+  const fileSize = headerSize + dataSize;
+  
+  // Create buffer for WAV file
+  const buffer = new ArrayBuffer(fileSize);
+  const view = new DataView(buffer);
+  
+  // Write WAV header
+  // RIFF chunk descriptor
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, fileSize - 8, true);
+  writeString(view, 8, 'WAVE');
+  
+  // FMT sub-chunk
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true); // Subchunk size
+  view.setUint16(20, format, true); // Audio format (PCM)
+  view.setUint16(22, numberOfChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true); // Byte rate
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
+  
+  // Data sub-chunk
+  writeString(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+  
+  // Write audio data
+  let offset = 44;
+  const length = channelData[0].length;
+  const interleaved = new Float32Array(numberOfChannels * length);
+  
+  // Interleave channels
+  for (let i = 0; i < length; i++) {
+    for (let channel = 0; channel < numberOfChannels; channel++) {
+      interleaved[i * numberOfChannels + channel] = channelData[channel][i];
+    }
+  }
+  
+  // Convert to 16-bit samples
+  for (let i = 0; i < interleaved.length; i++) {
+    const sample = Math.max(-1, Math.min(1, interleaved[i]));
+    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+    offset += 2;
+  }
+  
+  return buffer;
+}
+
+// Helper to write strings to DataView
+function writeString(view, offset, string) {
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
+}
+
+// Convert audio blob to MP3 format
+async function convertToMp3(audioBlob) {
+  const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const arrayBuffer = await audioBlob.arrayBuffer();
+  const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+  
+  // MP3 encoder settings
+  const mp3encoder = new lamejs.Mp3Encoder(audioBuffer.numberOfChannels, audioBuffer.sampleRate, 128);
+  const mp3Data = [];
+  
+  // Process each channel
+  const channelData = [];
+  for (let i = 0; i < audioBuffer.numberOfChannels; i++) {
+    channelData.push(audioBuffer.getChannelData(i));
+  }
+  
+  // Convert float audio data to 16-bit PCM
+  const sampleBlockSize = 1152; // must be multiple of 576 to match MP3 frame size
+  const samples = new Int16Array(audioBuffer.length * audioBuffer.numberOfChannels);
+  let index = 0;
+  
+  for (let i = 0; i < audioBuffer.length; i++) {
+    for (let channel = 0; channel < audioBuffer.numberOfChannels; channel++) {
+      const sample = channelData[channel][i];
+      // convert float to int16
+      samples[index++] = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+    }
+  }
+  
+  // Encode MP3
+  const left = samples;
+  let right = null;
+  
+  if (audioBuffer.numberOfChannels === 2) {
+    // If stereo, separate channels
+    const left = new Int16Array(audioBuffer.length);
+    const right = new Int16Array(audioBuffer.length);
+    
+    for (let i = 0; i < audioBuffer.length; i++) {
+      left[i] = samples[i * 2];
+      right[i] = samples[i * 2 + 1];
+    }
+  }
+  
+  for (let i = 0; i < audioBuffer.length; i += sampleBlockSize) {
+    const leftChunk = left.subarray(i, i + sampleBlockSize);
+    let mp3buf;
+    
+    if (audioBuffer.numberOfChannels === 2) {
+      const rightChunk = right.subarray(i, i + sampleBlockSize);
+      mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+    } else {
+      mp3buf = mp3encoder.encodeBuffer(leftChunk);
+    }
+    
+    if (mp3buf.length > 0) {
+      mp3Data.push(mp3buf);
+    }
+  }
+  
+  // Finalize encoding
+  const mp3buf = mp3encoder.flush();
+  if (mp3buf.length > 0) {
+    mp3Data.push(mp3buf);
+  }
+  
+  // Create blob from MP3 data
+  return new Blob(mp3Data, { type: 'audio/mp3' });
+}
+
+//////////////////////////////
+// Set up audio recording
+//////////////////////////////
+
+const voiceButton = document.getElementById("voice");
+let mediaRecorder;
+let localStream;
+let isListening = false;
+let silenceDetected = true;
+
+let workerOptions = {
+  OggOpusEncoderWasmPath: "https://cdn.jsdelivr.net/npm/opus-media-recorder@latest/OggOpusEncoder.wasm",
+  WebMOpusEncoderWasmPath: "https://cdn.jsdelivr.net/npm/opus-media-recorder@latest/WebMOpusEncoder.wasm"
+};
+window.MediaRecorder = OpusMediaRecorder;
+
+function controlRecording(mode) {
+  if (speechSynthesis.speaking) {
+    speechSynthesis.cancel();
+  }
+
+  // "Start" button is pressed
+  if (!isListening) {
+    document.getElementById("amplitude").style.display = "inline-block";
+    silenceDetected = false;
+    voiceButton.classList.toggle("btn-warning");
+    voiceButton.classList.toggle("btn-danger");
+    voiceButton.innerHTML = '<i class="fas fa-microphone"></i> Stop';
+    console.log("Listening...");
+    document.querySelectorAll("#execute_button, #clear_button").forEach(btn => btn.disabled = true);
+    isListening = true;
+
+    navigator.mediaDevices.getUserMedia({audio: true})
+      .then(function (stream) {
+        localStream = stream;
+        const options = {mimeType: "audio/webm;codecs=opus"};
+        mediaRecorder = new window.MediaRecorder(stream, options, workerOptions);
+
+        mediaRecorder.start();
+
+        // Detect silence and stop recording if silence lasts more than the specified duration
+        const silenceDuration = 5000; // 5000 milliseconds (5 seconds)
+        const closeAudioContext = detectSilence(stream, function () {
+          if (isListening) {
+            silenceDetected = true;
+            voiceButton.click();
+          }
+        }, silenceDuration);
+
+        localStream.closeAudioContext = closeAudioContext;
+
+      }).catch(function (err) {
+        console.log(err);
+      });
+
+  // "Stop" button is pressed
+  } else if (!silenceDetected) {
+    voiceButton.classList.toggle("btn-warning");
+    voiceButton.classList.toggle("btn-danger");
+    voiceButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing ...';
+    console.log("Processing ...");
+    document.querySelectorAll("#execute_button, #clear_button").forEach(btn => btn.disabled = false);
+    isListening = false;
+
+    if(mediaRecorder){
+      try {
+        mediaRecorder.ondataavailable = async function (event) {
+          const audioBlob = event.data;
+          const format = audioBlob.type.includes('webm') ? 'webm' : 
+                        audioBlob.type.includes('wav') ? 'wav' : 
+                        audioBlob.type.includes('mp3') ? 'mp3' : 'webm';
+
+          console.log(`Using ${format} format`);
+          
+          blobToBase64Url(audioBlob, function (base64) {
+            const json = JSON.stringify({message: "AUDIO", content: base64, format: format});
+            let url = "alfred://runtrigger/com.yohasebe.openai/openai-recording/?argument="
+            if (mode === "chat"){
+              url = "alfred://runtrigger/com.yohasebe.openai/openai-recording-chat/?argument="
+            }
+            window.location = url + json;
+            console.log("Audio processed and sent in " + format + " format");
+          });
+        }
+
+        mediaRecorder.stop();
+        localStream.getTracks().forEach(track => track.stop());
+
+        if (localStream.closeAudioContext) {
+          localStream.closeAudioContext();
+        }
+        document.getElementById("amplitude").style.display = 'none';
+      } catch (e) {
+        console.log(e);
+        document.querySelectorAll("#execute_button, #clear_button, #voice").forEach(btn => btn.disabled = false);
+      } 
+    }
+
+  } else {
+    voiceButton.classList.toggle("btn-warning");
+    voiceButton.classList.toggle("btn-danger");
+    console.log("Silence detected. Please check your microphone settings and try again.");
+    voiceButton.innerHTML = '<i class="fas fa-microphone"></i> Stop';
+    document.querySelectorAll("#execute_button, #clear_button").forEach(btn => btn.disabled = false);
+    isListening = false;
+
+    mediaRecorder.stop();
+    localStream.getTracks().forEach(track => track.stop());
+
+    // Close the audio context
+    if (localStream.closeAudioContext) {
+      localStream.closeAudioContext();
+    }
+    document.getElementById("amplitude").style.display = 'none';
+  }
+};
+
+function blobToBase64(blob, callback) {
+  const reader = new FileReader();
+  reader.onload = function () {
+    const dataUrl = reader.result;
+    const base64 = dataUrl.split(',')[1];
+    callback(base64);
+  };
+  reader.readAsDataURL(blob);
+}
+function blobToBase64Url(blob, callback) {
+  const reader = new FileReader();
+  reader.onload = function () {
+    const dataUrl = reader.result;
+    const base64 = dataUrl.split(',')[1];
+    const base64url = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    callback(base64url);
+  };
+  reader.readAsDataURL(blob);
+}
+</script>

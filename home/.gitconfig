@@ -17,3 +17,12 @@
         default = simple
 [core]
 	excludesfile = ~/.gitignore
+[credential]
+	helper = cache
+#[gpg]
+#    format = ssh
+#    signingkey = .ssh/thekey.pub
+
+# Conditionally use a gitconfig. the .gitconfig.work below corresponds to ~/.gitconfig.work
+#[includeIf "gitdir:~/work/"]
+#    path = .gitconfig.work

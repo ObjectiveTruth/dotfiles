@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>customSites</key>
+	<dict>
+		<key>255C3146-CDD2-435C-97E4-395CAE34773D</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>keyword</key>
+			<string>kb</string>
+			<key>text</key>
+			<string>Obsidian Knowledge Base</string>
+			<key>url</key>
+			<string>https://windmill.home.objectivetruth.ca/api/r/obsidian_kb_search?q={query}</string>
+		</dict>
+		<key>6D06AD4F-4E5B-4F47-A2E9-C4D1F259D571</key>
+		<dict>
+			<key>enabled</key>
+			<true/>
+			<key>keyword</key>
+			<string>per</string>
+			<key>text</key>
+			<string>perplexity.ai</string>
+			<key>url</key>
+			<string>https://www.perplexity.ai/search?q={query}</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

@@ -1,0 +1,37 @@
+</div> <!-- message user-->
+</div> <!-- messages -->
+
+<div class="message system" id="streaming"><span class="system-color"><i class="fa fa-robot"></i> Assistant</span><br /><p id="streaming-caret"> ●</p></div>
+
+<button id="cancel_button" class="small"><i class="far fa-window-close"></i> Cancel</button>
+
+<script>
+  // Add event listeners for focus and blur events
+  window.addEventListener('focus', showFocusedState);
+  window.addEventListener('blur', showBlurredState);
+
+  // Initialize the indicator based on the current focus state
+  if (document.hasFocus()) {
+    showFocusedState();
+  } else {
+    showBlurredState();
+  }
+
+  window.onload = function() {
+    let lastMessage = document.querySelector("#openai-response .message:last-child");
+    let lastMessageText = lastMessage.innerText;
+    lastMessage.style.display = "none";
+    progress("#openai-response .message:last-child", lastMessageText.trim());
+    let dom = document.getElementById("streaming");
+    const parameters = document.getElementById("parameters");
+    const loopback = parameters.dataset.loopback;
+    const websocket_port = parameters.dataset.websocket_port;
+    startStreaming(dom, loopback, websocket_port, 0);
+  }
+
+  document.getElementById("cancel_button").onclick = function() {
+    cancel("alfred");
+    this.style.display = "none";
+  }
+
+</script>

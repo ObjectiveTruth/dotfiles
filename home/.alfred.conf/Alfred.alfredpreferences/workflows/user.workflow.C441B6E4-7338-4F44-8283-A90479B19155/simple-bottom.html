@@ -1,0 +1,62 @@
+<div class="button-panel" style="margin-bottom:5px;">
+  <button id="reset_button"><span class="accent-color"><i class="fas fa-file-alt"></i></span> Start New Chat</button>
+</div>
+
+</div>
+<!-- #openai-response -->
+
+<script>
+  // Add event listeners for focus and blur events
+  window.addEventListener('focus', showFocusedState);
+  window.addEventListener('blur', showBlurredState);
+
+  // Initialize the indicator based on the current focus state
+  if (document.hasFocus()) {
+    showFocusedState();
+  } else {
+    showBlurredState();
+  }
+
+  window.onload = function() {
+    let user_message = document.querySelector("#openai-response .message.user pre")
+    if(user_message) {
+      document.querySelector("#openai-response .message.user pre").remove();
+      let user_p = document.createElement("p");
+      user_p.textContent = user_message.textContent.trim();
+      document.querySelector("#openai-response .message.user").appendChild(user_p);
+
+      changeMessageIcon(".user", "fa-smile", "user-color");
+      changeMessageIcon(".assistant", "fa-robot", "assistant-color");
+
+      let editButton = document.createElement("button");
+      editButton.className = "small";
+      editButton.innerHTML = '<span><i class="fas fa-pencil-alt"></i> Edit Prompt</span>';
+      editButton.id = "edit_button";
+
+      let mode = document.getElementById("parameters").dataset.mode;
+      if (!mode) {
+        mode = "simple";
+      }
+
+      editButton.onclick = function() {
+        showSpinner(this.id);
+        edit_simple_page_prompt(mode);
+      }
+      document.querySelector("#openai-response .message.user").appendChild(editButton);
+    }
+  }
+
+  document.getElementById("reset_button").onclick = function() {
+    reset(this.id);
+  }
+
+  document.querySelector("#openai-response").addEventListener("click", function(e){
+    if(e.target && e.target.nodeName == "IMG") {
+      window.open(e.target.src, "_blank");
+    }
+  });
+
+  document.getElementById("banner-title").addEventListener("click", function(){
+    reset();
+  });
+</script>

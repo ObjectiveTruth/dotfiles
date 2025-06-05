@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>bundleid</key>
+	<string>com.alfredapp.vero.gettingstarted.keywords</string>
+	<key>connections</key>
+	<dict>
+		<key>18E1A298-52F6-4C8F-B710-4CEFF7FD4987</key>
+		<array>
+			<dict>
+				<key>destinationuid</key>
+				<string>87F2C10C-0850-4F6F-B7AD-0D76353D1C2E</string>
+				<key>modifiers</key>
+				<integer>0</integer>
+				<key>modifiersubtext</key>
+				<string></string>
+				<key>vitoclose</key>
+				<false/>
+			</dict>
+		</array>
+	</dict>
+	<key>createdby</key>
+	<string>Miguel Mendez</string>
+	<key>description</key>
+	<string>You provide a link and it opens firecrawl to that crawl url</string>
+	<key>disabled</key>
+	<false/>
+	<key>name</key>
+	<string>Firecrawl Scrape Shortcut</string>
+	<key>objects</key>
+	<array>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>argumenttype</key>
+				<integer>0</integer>
+				<key>keyword</key>
+				<string>scrape</string>
+				<key>subtext</key>
+				<string></string>
+				<key>text</key>
+				<string>Scrape with Firecrawl</string>
+				<key>withspace</key>
+				<true/>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.input.keyword</string>
+			<key>uid</key>
+			<string>18E1A298-52F6-4C8F-B710-4CEFF7FD4987</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+		<dict>
+			<key>config</key>
+			<dict>
+				<key>browser</key>
+				<string></string>
+				<key>skipqueryencode</key>
+				<false/>
+				<key>skipvarencode</key>
+				<false/>
+				<key>spaces</key>
+				<string>%20</string>
+				<key>url</key>
+				<string>https://www.firecrawl.dev/playground?url={query}&amp;mode=scrape&amp;limit=10&amp;excludes=&amp;includes=&amp;formats=markdown&amp;onlyMainContent=true</string>
+			</dict>
+			<key>type</key>
+			<string>alfred.workflow.action.openurl</string>
+			<key>uid</key>
+			<string>87F2C10C-0850-4F6F-B7AD-0D76353D1C2E</string>
+			<key>version</key>
+			<integer>1</integer>
+		</dict>
+	</array>
+	<key>readme</key>
+	<string>Keywords are one of Alfred's most commonly used and most useful ways of launching actions. Set a keyword and connect it to the action(s) you want to perform.
+
+Type your keyword into Alfred, followed by your input text if needed, and you'll be on your way to boosting your productivity!</string>
+	<key>uidata</key>
+	<dict>
+		<key>18E1A298-52F6-4C8F-B710-4CEFF7FD4987</key>
+		<dict>
+			<key>xpos</key>
+			<real>50</real>
+			<key>ypos</key>
+			<real>130</real>
+		</dict>
+		<key>87F2C10C-0850-4F6F-B7AD-0D76353D1C2E</key>
+		<dict>
+			<key>xpos</key>
+			<real>315</real>
+			<key>ypos</key>
+			<real>140</real>
+		</dict>
+	</dict>
+	<key>userconfigurationconfig</key>
+	<array/>
+	<key>version</key>
+	<string>1.0</string>
+	<key>webaddress</key>
+	<string>https://www.alfredapp.com</string>
+</dict>
+</plist>
